@@ -1,0 +1,98 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: #555;
+  background-color: #EAF4F4;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #EAF4F4;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1A3C5E40;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1A3C5E70;
+}
+
+/* NiiVue canvas styling */
+.niivue-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0.75rem;
+}
+
+/* Glassmorphism utility */
+@layer utilities {
+  .glass {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .glass-dark {
+    background: rgba(26, 60, 94, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, #1A3C5E 0%, #00A896 100%);
+  }
+
+  .gradient-hero {
+    background: linear-gradient(135deg, #0B1B2B 0%, #1A3C5E 40%, #00655A 100%);
+  }
+
+  .gradient-card {
+    background: linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(234,244,244,0.9) 100%);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #00A896 0%, #E07B39 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* Dropzone styles */
+.dropzone-active {
+  border-color: #00A896 !important;
+  background-color: rgba(0, 168, 150, 0.05) !important;
+}
+
+/* Stepper animations */
+@keyframes stepPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(0, 168, 150, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(0, 168, 150, 0); }
+}
+
+.step-active {
+  animation: stepPulse 2s infinite;
+}
