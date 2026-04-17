@@ -306,6 +306,8 @@ const DashboardPage = () => {
     : stackPreviewUrl
       ? 'Images are stacked and ready for segmentation.'
       : 'Stack the uploaded inputs without running the model.';
+  const showStackButton = !hasStackedPreview && !isProcessing && !isDone;
+  const showRunButton = hasStackedPreview && !isProcessing && !isDone;
 
   const baseVolume = useMemo(() => (viewerVolume ? [{ url: viewerVolume }] : []), [viewerVolume]);
   const viewerBusyLabel = isStacking
@@ -383,21 +385,39 @@ const DashboardPage = () => {
                   )}
 
                   <div className="mt-4 space-y-3">
-                    <Button
-                      variant="secondary"
-                      size="md"
-                      className="w-full"
-                      disabled={!canStack || isStacking || hasStackedPreview}
-                      loading={isStacking}
-                      onClick={handleStackFiles}
-                    >
-                      {isStacking ? 'Stacking Images...' : hasStackedPreview ? 'Images Stacked' : stackButtonLabel}
-                    </Button>
-                    <p className="text-xs text-textColor/60">
-                      {isStacking ? 'Please wait while inputs are being stacked.' : stackButtonHint}
-                    </p>
+                    {showStackButton && (
+                      <>
+                        <Button
+                          variant="secondary"
+                          size="md"
+                          className="w-full"
+                          disabled={!canStack || isStacking}
+                          loading={isStacking}
+                          onClick={handleStackFiles}
+                        >
+                          {isStacking ? 'Stacking Images...' : stackButtonLabel}
+                        </Button>
+                        <p className="text-xs text-textColor/60">
+                          {isStacking ? 'Please wait while inputs are being stacked.' : stackButtonHint}
+                        </p>
+                      </>
+                    )}
+
                     {hasStackedPreview && (
                       <Badge color="green">Stacked</Badge>
+                    )}
+
+                    {showRunButton && (
+                      <Button
+                        variant="teal"
+                        size="lg"
+                        className="w-full"
+                        disabled={!canRunSegmentation}
+                        onClick={handleRunSegmentation}
+                        icon="🧠"
+                      >
+                        Run Segmentation
+                      </Button>
                     )}
                   </div>
                 </Card>
@@ -478,23 +498,6 @@ const DashboardPage = () => {
               )}
 
               <div className="space-y-3">
-                {!isProcessing && !isDone && (
-                  <Button
-                    variant="teal"
-                    size="lg"
-                    className="w-full"
-                    disabled={!canRunSegmentation}
-                    onClick={handleRunSegmentation}
-                    icon="🧠"
-                  >
-                    {!files.length
-                      ? 'Upload Files First'
-                      : !hasStackedPreview
-                        ? 'Stack Images First'
-                        : 'Run Segmentation'}
-                  </Button>
-                )}
-
                 {isProcessing && (
                   <Button
                     variant="teal"

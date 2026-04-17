@@ -8,8 +8,21 @@ const api = axios.create({
   },
 });
 
+const PREVIEW_MODALITY_PRIORITY = ['t1', 't1ce', 't2', 'flair'];
+
+const pickPreviewSourceFile = (files) => {
+  if (!Array.isArray(files) || files.length === 0) return null;
+
+  for (const modality of PREVIEW_MODALITY_PRIORITY) {
+    const match = files.find((item) => item?.modality === modality && item?.file);
+    if (match) return match.file;
+  }
+
+  return files.find((item) => item?.file)?.file || null;
+};
+
 const createLocalPreviewUrl = (files) => {
-  const sourceFile = files?.[0]?.file;
+  const sourceFile = pickPreviewSourceFile(files);
   if (!sourceFile) {
     return null;
   }
@@ -36,7 +49,23 @@ export const startSegmentation = async (files, settings) => {
 };
 
 // Stack uploaded files without starting model inference
-export const stackInputs = async (files) => {
+export const stackInputs = async (files, options = {}) => {
+  const { useBackendPreview = false } = options;
+
+  if (!useBackendPreview) {
+    const previewUrl = createLocalPreviewUrl(files);
+    if (!previewUrl) {
+      throw new Error('Unable to generate stacked preview from uploaded files.');
+    }
+
+    return {
+      status: 'stacked_local',
+      preview_url: previewUrl,
+      filename: pickPreviewSourceFile(files)?.name || 'stacked_preview.nii.gz',
+      mode: 'local-fast-preview',
+    };
+  }
+
   const formData = new FormData();
 
   files.forEach((fileObj) => {
