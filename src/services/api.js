@@ -50,7 +50,7 @@ export const startSegmentation = async (files, settings) => {
 
 // Stack uploaded files without starting model inference
 export const stackInputs = async (files, options = {}) => {
-  const { useBackendPreview = false } = options;
+  const { useBackendPreview = !import.meta.env.DEV } = options;
 
   if (!useBackendPreview) {
     const previewUrl = createLocalPreviewUrl(files);
