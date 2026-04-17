@@ -8,6 +8,15 @@ const api = axios.create({
   },
 });
 
+const createLocalPreviewUrl = (files) => {
+  const sourceFile = files?.[0]?.file;
+  if (!sourceFile) {
+    return null;
+  }
+
+  return URL.createObjectURL(sourceFile);
+};
+
 // Upload NIfTI files and start segmentation
 export const startSegmentation = async (files, settings) => {
   const formData = new FormData();
@@ -35,11 +44,35 @@ export const stackInputs = async (files) => {
     formData.append('modalities', fileObj.modality);
   });
 
-  const response = await api.post('/api/segment/stack/', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  try {
+    const response = await api.post('/api/segment/stack/', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
 
-  return response.data;
+    return response.data;
+  } catch (error) {
+    const statusCode = error.response?.status;
+    const isBackendUnavailable =
+      !error.response ||
+      (statusCode >= 500 && statusCode < 600) ||
+      error.code === 'ERR_NETWORK';
+
+    if (isBackendUnavailable) {
+      const previewUrl = createLocalPreviewUrl(files);
+      if (!previewUrl) {
+        throw error;
+      }
+
+      return {
+        status: 'stacked_local',
+        preview_url: previewUrl,
+        filename: files[0]?.name || 'stacked_preview.nii.gz',
+        mode: 'local-fallback',
+      };
+    }
+
+    throw error;
+  }
 };
 
 // Get segmentation job status

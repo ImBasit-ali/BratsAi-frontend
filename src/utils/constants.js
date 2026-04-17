@@ -1,5 +1,14 @@
 // API Base URL
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const normalizeApiBaseUrl = (value) => {
+  if (!value) return '';
+  return value.replace(/\/$/, '');
+};
+
+export const API_BASE_URL = normalizeApiBaseUrl(
+  import.meta.env.DEV
+    ? ''
+    : import.meta.env.VITE_API_BASE_URL || 'https://brats-backend-production.up.railway.app'
+);
 
 // Tumor Subregions
 export const TUMOR_REGIONS = {

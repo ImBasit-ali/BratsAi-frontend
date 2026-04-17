@@ -93,39 +93,47 @@ const ViewerControls = ({
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-primary/80">Overlay Masks</span>
-              <button
-                type="button"
-                className="px-2 py-1 text-xs font-semibold rounded-lg bg-teal/10 text-teal hover:bg-teal/20 transition-colors"
-                onClick={onSelectAllMasks}
-              >
-                {allMasksSelected ? 'All Selected' : 'Select All'}
-              </button>
+              {overlayMasks.length > 0 && (
+                <button
+                  type="button"
+                  className="px-2 py-1 text-xs font-semibold rounded-lg bg-teal/10 text-teal hover:bg-teal/20 transition-colors"
+                  onClick={onSelectAllMasks}
+                >
+                  {allMasksSelected ? 'All Selected' : 'Select All'}
+                </button>
+              )}
             </div>
 
-            <div className="space-y-1.5">
-              {overlayMasks.map((mask) => (
-                <label
-                  key={mask.key}
-                  className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-colors ${
-                    mask.selected ? 'border-teal/40 bg-teal/5' : 'border-primary/10 bg-surface/50'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full"
-                      style={{ backgroundColor: mask.color }}
+            {overlayMasks.length > 0 ? (
+              <div className="space-y-1.5">
+                {overlayMasks.map((mask) => (
+                  <label
+                    key={mask.key}
+                    className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-colors ${
+                      mask.selected ? 'border-teal/40 bg-teal/5' : 'border-primary/10 bg-surface/50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <span
+                        className="w-2.5 h-2.5 rounded-full"
+                        style={{ backgroundColor: mask.color }}
+                      />
+                      <span className="text-sm font-medium text-primary/80">{mask.label}</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={mask.selected}
+                      onChange={() => onMaskToggle?.(mask.key)}
+                      className="w-4 h-4 rounded border-primary/20 text-teal focus:ring-teal/30"
                     />
-                    <span className="text-sm font-medium text-primary/80">{mask.label}</span>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={mask.selected}
-                    onChange={() => onMaskToggle?.(mask.key)}
-                    className="w-4 h-4 rounded border-primary/20 text-teal focus:ring-teal/30"
-                  />
-                </label>
-              ))}
-            </div>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-primary/10 bg-surface/40 px-3 py-2 text-xs text-textColor/60">
+                Stack the images first, then run segmentation to reveal overlay masks.
+              </p>
+            )}
           </div>
 
           <Slider

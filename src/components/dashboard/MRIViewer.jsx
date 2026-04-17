@@ -12,6 +12,7 @@ const MRIViewer = ({
   isUpdating = false,
   isBusy = false,
   busyLabel = 'Loading MRI volume...',
+  onLoadError,
 }) => {
   const canvasRef = useRef(null);
   const nvRef = useRef(null);
@@ -22,6 +23,7 @@ const MRIViewer = ({
     ...volumes.map((vol) => vol?.url || ''),
     ...overlayVolumes.map((overlay) => overlay?.url || ''),
   ].join('|');
+  const hasOverlayVolumes = overlayVolumes.some((overlay) => Boolean(overlay?.url));
 
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -65,7 +67,7 @@ const MRIViewer = ({
         const volumeList = volumes.map((v, i) => ({
           url: v.url,
           colormap: i === 0 ? 'gray' : 'actc',
-          opacity: i === 0 ? 1 : overlayOpacity,
+          opacity: i === 0 ? (hasOverlayVolumes ? 0.78 : 1) : overlayOpacity,
         }));
 
         overlayVolumes.forEach((overlay) => {
@@ -73,7 +75,10 @@ const MRIViewer = ({
             volumeList.push({
               url: overlay.url,
               colormap: overlay.colormap || 'actc',
-              opacity: overlayOpacity,
+              opacity: Math.max(overlayOpacity, 0.9),
+              cal_min: 0.5,
+              cal_max: 1,
+              visible: true,
             });
           }
         });
@@ -85,7 +90,9 @@ const MRIViewer = ({
       } catch (err) {
         if (isActive) {
           setIsLoadingVolumes(false);
-          setLoadError('Failed to load MRI volume. Try stacking again.');
+          const message = 'Failed to load MRI volume. Try stacking again.';
+          setLoadError(message);
+          onLoadError?.(message, err);
         }
         console.error('Error loading volumes:', err);
       }

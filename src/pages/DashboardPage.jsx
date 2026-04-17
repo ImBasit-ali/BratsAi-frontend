@@ -30,6 +30,12 @@ const DashboardPage = () => {
   const [viewerResetVersion, setViewerResetVersion] = useState(0);
   const viewerUpdateTimerRef = useRef(null);
 
+  const revokeStackPreviewUrl = useCallback((url) => {
+    if (typeof url === 'string' && url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
+  }, []);
+
   // Viewer state
   const [viewerState, setViewerState] = useState({
     sliceX: 50,
@@ -66,9 +72,14 @@ const DashboardPage = () => {
     }
   }, []);
 
+  useEffect(() => () => {
+    revokeStackPreviewUrl(stackPreviewUrl);
+  }, [stackPreviewUrl, revokeStackPreviewUrl]);
+
   // File handlers
   const handleFilesAdded = useCallback((newFiles) => {
     setUploadError(null);
+    revokeStackPreviewUrl(stackPreviewUrl);
     setStackPreviewUrl(null);
     reset();
     setFiles((prev) => {
@@ -91,17 +102,19 @@ const DashboardPage = () => {
 
       return merged;
     });
-  }, []);
+  }, [revokeStackPreviewUrl, reset, stackPreviewUrl]);
 
   const handleFileRemove = useCallback((fileId) => {
+    revokeStackPreviewUrl(stackPreviewUrl);
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
     setUploadError(null);
     setStackPreviewUrl(null);
     reset();
-  }, []);
+  }, [revokeStackPreviewUrl, reset, stackPreviewUrl]);
 
   const handleModalityChange = useCallback((fileId, modality) => {
     setUploadError(null);
+    revokeStackPreviewUrl(stackPreviewUrl);
     setStackPreviewUrl(null);
     reset();
     setFiles((prev) => {
@@ -113,10 +126,11 @@ const DashboardPage = () => {
 
       return prev.map((file) => (file.id === fileId ? { ...file, modality } : file));
     });
-  }, []);
+  }, [revokeStackPreviewUrl, reset, stackPreviewUrl]);
 
   const handleFileDuplicate = useCallback((fileId) => {
     setUploadError(null);
+    revokeStackPreviewUrl(stackPreviewUrl);
     setStackPreviewUrl(null);
     reset();
     setFiles((prev) => {
@@ -144,7 +158,7 @@ const DashboardPage = () => {
 
       return [...prev, duplicatedFile];
     });
-  }, []);
+  }, [revokeStackPreviewUrl, reset, stackPreviewUrl]);
 
   const handleStackFiles = async () => {
     if (files.length === 0) return;
@@ -175,6 +189,14 @@ const DashboardPage = () => {
       setIsStacking(false);
     }
   };
+
+  const handleViewerLoadError = useCallback((message, error) => {
+    if (stackPreviewUrl) {
+      revokeStackPreviewUrl(stackPreviewUrl);
+    }
+    setStackPreviewUrl(null);
+    setUploadError(message || error?.message || 'Failed to load MRI volume. Try stacking again.');
+  }, [revokeStackPreviewUrl, stackPreviewUrl]);
 
   // Run segmentation
   const handleRunSegmentation = async () => {
@@ -216,6 +238,7 @@ const DashboardPage = () => {
 
   // Reset
   const handleReset = () => {
+    revokeStackPreviewUrl(stackPreviewUrl);
     reset();
     setFiles([]);
     setUploadError(null);
@@ -563,6 +586,7 @@ const DashboardPage = () => {
                     isUpdating={isViewerUpdating}
                     isBusy={isStacking || isProcessing}
                     busyLabel={viewerBusyLabel}
+                    onLoadError={handleViewerLoadError}
                   />
                 </div>
               </Card>
