@@ -4,10 +4,12 @@ const normalizeApiBaseUrl = (value) => {
   return value.replace(/\/$/, '');
 };
 
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+
 export const API_BASE_URL = normalizeApiBaseUrl(
   import.meta.env.DEV
     ? ''
-    : import.meta.env.VITE_API_BASE_URL || 'https://brats-backend-production.up.railway.app'
+    : configuredApiBaseUrl || ''
 );
 
 // Tumor Subregions
