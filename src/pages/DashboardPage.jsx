@@ -180,7 +180,7 @@ const DashboardPage = () => {
 
     try {
       setIsStacking(true);
-      const response = await stackInputs(files, { useBackendPreview: false });
+      const response = await stackInputs(files);
       setStackPreviewUrl(response.preview_url);
       setUploadError(null);
     } catch (error) {

@@ -86,29 +86,24 @@ export const PROCESSING_STEPS = [
 // Team Members
 export const TEAM_MEMBERS = [
   {
-    name: 'Dr. Sarah Chen',
-    role: 'Lead AI Researcher',
+    name: 'Mutyyaba Asghar',
+    role: 'AI Researcher',
     bio: 'PhD in Medical Imaging, specializing in deep learning for brain tumor segmentation with 10+ years of experience.',
     avatar: null,
   },
   {
-    name: 'Dr. Ahmed Hassan',
-    role: 'Neuroradiologist',
-    bio: 'Board-certified neuroradiologist providing clinical validation and medical expertise for the segmentation models.',
+    name: 'Muhammad Wahaj Sajid',
+    role: 'Native Android Developer',
+    bio: 'Skilled in Kotlin and Java, responsible for developing the Android application interface for seamless user experience.',
     avatar: null,
   },
   {
-    name: 'Maria Rodriguez',
-    role: 'ML Engineer',
-    bio: 'Expert in PyTorch and medical image processing pipelines, responsible for model training and optimization.',
+    name: 'Basit Ali',
+    role: 'Flutter,Django Developer',
+    bio: 'Expert in cross-platform mobile development with Flutter and backend development with Django, ensuring robust and scalable application architecture.',
     avatar: null,
   },
-  // {
-  //   name: 'James O\'Brien',
-  //   role: 'Full-Stack Developer',
-  //   bio: 'Builds the web platform connecting AI models to clinical workflows with seamless user experiences.',
-  //   avatar: null,
-  // },
+
 ];
 
 // Model Highlights
