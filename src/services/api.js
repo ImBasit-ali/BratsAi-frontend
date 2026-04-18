@@ -17,6 +17,7 @@ const api = axios.create({
 });
 
 const PREVIEW_MODALITY_PRIORITY = ['t1', 't1ce', 't2', 'flair'];
+const STACK_PREVIEW_TIMEOUT_MS = 45000;
 
 const pickPreviewSourceFile = (files) => {
   if (!Array.isArray(files) || files.length === 0) return null;
@@ -27,6 +28,17 @@ const pickPreviewSourceFile = (files) => {
   }
 
   return files.find((item) => item?.file)?.file || null;
+};
+
+const pickPreviewSourceItem = (files) => {
+  if (!Array.isArray(files) || files.length === 0) return null;
+
+  for (const modality of PREVIEW_MODALITY_PRIORITY) {
+    const match = files.find((item) => item?.modality === modality && item?.file);
+    if (match) return match;
+  }
+
+  return files.find((item) => item?.file) || null;
 };
 
 const createLocalPreviewUrl = (files) => {
@@ -75,8 +87,10 @@ export const stackInputs = async (files, options = {}) => {
   }
 
   const formData = new FormData();
+  const previewSource = pickPreviewSourceItem(files);
+  const previewUploadList = files.length > 1 && previewSource ? [previewSource] : files;
 
-  files.forEach((fileObj) => {
+  previewUploadList.forEach((fileObj) => {
     formData.append('files', fileObj.file);
     formData.append('modalities', fileObj.modality);
   });
@@ -84,6 +98,7 @@ export const stackInputs = async (files, options = {}) => {
   try {
     const response = await api.post(buildApiUrl('/segment/stack/'), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: STACK_PREVIEW_TIMEOUT_MS,
     });
 
     return response.data;
