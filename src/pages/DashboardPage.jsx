@@ -184,7 +184,7 @@ const DashboardPage = () => {
       setStackPreviewUrl(response.preview_url);
       setUploadError(null);
     } catch (error) {
-      setUploadError(error.response?.data?.error || 'Failed to stack inputs.');
+      setUploadError(error.response?.data?.error || error.message || 'Failed to stack inputs.');
     } finally {
       setIsStacking(false);
     }

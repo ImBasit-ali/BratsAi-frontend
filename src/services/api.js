@@ -94,6 +94,7 @@ export const stackInputs = async (files, options = {}) => {
     formData.append('files', fileObj.file);
     formData.append('modalities', fileObj.modality);
   });
+  formData.append('preview_mode', 'fast');
 
   try {
     const response = await api.post(buildApiUrl('/segment/stack/'), formData, {
@@ -109,7 +110,18 @@ export const stackInputs = async (files, options = {}) => {
       (statusCode >= 500 && statusCode < 600) ||
       error.code === 'ERR_NETWORK';
 
+    const sourceFile = pickPreviewSourceFile(files);
+    const isNiftiPreview = /\.nii(\.gz)?$/i.test(sourceFile?.name || '');
+
     if (isBackendUnavailable) {
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Stack preview timed out. Please try again.');
+      }
+
+      if (isNiftiPreview) {
+        throw new Error('Stack preview service is unavailable right now. Please try again.');
+      }
+
       const previewUrl = createLocalPreviewUrl(files);
       if (!previewUrl) {
         throw error;
