@@ -17,7 +17,7 @@ const api = axios.create({
 });
 
 const PREVIEW_MODALITY_PRIORITY = ['t1', 't1ce', 't2', 'flair'];
-const STACK_PREVIEW_TIMEOUT_MS = 45000;
+const STACK_PREVIEW_TIMEOUT_MS = 120000;
 
 const pickPreviewSourceFile = (files) => {
   if (!Array.isArray(files) || files.length === 0) return null;

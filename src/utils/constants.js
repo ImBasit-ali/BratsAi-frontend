@@ -23,12 +23,13 @@ const normalizeApiBaseUrl = (value) => {
 };
 
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const DEFAULT_PROD_API_BASE_URL = 'https://brats-backend-production.up.railway.app';
 const isLocalhostApiUrl = (value) => /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?$/i.test(value || '');
 const safeApiBaseUrl = import.meta.env.DEV
   ? configuredApiBaseUrl
   : isLocalhostApiUrl(configuredApiBaseUrl)
-    ? ''
-    : configuredApiBaseUrl;
+    ? DEFAULT_PROD_API_BASE_URL
+    : (configuredApiBaseUrl || DEFAULT_PROD_API_BASE_URL);
 
 export const API_BASE_URL = normalizeApiBaseUrl(
   import.meta.env.DEV
