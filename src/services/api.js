@@ -1,8 +1,14 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../utils/constants';
 
+const API_ROOT = API_BASE_URL ? `${API_BASE_URL}/api` : '/api';
+
+const buildApiUrl = (path) => {
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_ROOT}${normalizedPath}`;
+};
+
 const api = axios.create({
-  baseURL: API_BASE_URL,
   headers: {
     'Accept': 'application/json',
   },
@@ -41,7 +47,7 @@ export const startSegmentation = async (files, settings) => {
 
   formData.append('regions', JSON.stringify(settings.regions));
 
-  const response = await api.post('/api/segment/', formData, {
+  const response = await api.post(buildApiUrl('/segment/'), formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
 
@@ -74,7 +80,7 @@ export const stackInputs = async (files, options = {}) => {
   });
 
   try {
-    const response = await api.post('/api/segment/stack/', formData, {
+    const response = await api.post(buildApiUrl('/segment/stack/'), formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
 
@@ -106,19 +112,19 @@ export const stackInputs = async (files, options = {}) => {
 
 // Get segmentation job status
 export const getSegmentationStatus = async (jobId) => {
-  const response = await api.get(`/api/segment/${jobId}/status/`);
+  const response = await api.get(buildApiUrl(`/segment/${jobId}/status/`));
   return response.data;
 };
 
 // Get segmentation result
 export const getSegmentationResult = async (jobId) => {
-  const response = await api.get(`/api/segment/${jobId}/result/`);
+  const response = await api.get(buildApiUrl(`/segment/${jobId}/result/`));
   return response.data;
 };
 
 // Download segmentation file as blob
 export const downloadSegmentationFile = async (jobId) => {
-  const response = await api.get(`/api/segment/${jobId}/download/`, {
+  const response = await api.get(buildApiUrl(`/segment/${jobId}/download/`), {
     responseType: 'blob',
   });
 
@@ -136,7 +142,7 @@ export const downloadSegmentationFile = async (jobId) => {
 
 // Download segmentation file
 export const getDownloadUrl = (jobId) => {
-  return `${API_BASE_URL}/api/segment/${jobId}/download/`;
+  return buildApiUrl(`/segment/${jobId}/download/`);
 };
 
 export default api;

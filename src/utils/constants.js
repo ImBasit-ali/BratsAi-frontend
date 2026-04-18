@@ -5,11 +5,17 @@ const normalizeApiBaseUrl = (value) => {
 };
 
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();
+const isLocalhostApiUrl = (value) => /^(https?:\/\/)?(localhost|127\.0\.0\.1)(:\d+)?$/i.test(value || '');
+const safeApiBaseUrl = import.meta.env.DEV
+  ? configuredApiBaseUrl
+  : isLocalhostApiUrl(configuredApiBaseUrl)
+    ? ''
+    : configuredApiBaseUrl;
 
 export const API_BASE_URL = normalizeApiBaseUrl(
   import.meta.env.DEV
     ? ''
-    : configuredApiBaseUrl || ''
+    : safeApiBaseUrl || ''
 );
 
 // Tumor Subregions
