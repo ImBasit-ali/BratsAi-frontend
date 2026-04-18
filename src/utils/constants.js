@@ -1,7 +1,25 @@
 // API Base URL
 const normalizeApiBaseUrl = (value) => {
   if (!value) return '';
-  return value.replace(/\/$/, '');
+
+  const trimmed = value.trim().replace(/\/$/, '');
+
+  if (!trimmed) return '';
+
+  if (/^https?:\/\//i.test(trimmed)) {
+    return trimmed;
+  }
+
+  if (/^\/\//.test(trimmed)) {
+    return `https:${trimmed}`;
+  }
+
+  // If deploy env var is set as plain host (without scheme), force https.
+  if (/^[a-z0-9.-]+(?::\d+)?(?:\/.*)?$/i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+
+  return trimmed;
 };
 
 const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL?.trim();

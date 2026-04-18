@@ -1,7 +1,9 @@
 import axios from 'axios';
 import { API_BASE_URL } from '../utils/constants';
 
-const API_ROOT = API_BASE_URL ? `${API_BASE_URL}/api` : '/api';
+const API_ROOT = API_BASE_URL
+  ? (API_BASE_URL.endsWith('/api') ? API_BASE_URL : `${API_BASE_URL}/api`)
+  : '/api';
 
 const buildApiUrl = (path) => {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
