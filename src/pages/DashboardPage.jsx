@@ -282,6 +282,7 @@ const DashboardPage = () => {
   const showViewerPanel = hasStackedPreview;
   const hasModelResult = isDone && Boolean(result?.overlays);
   const viewerVolume = result?.model_input_url || stackPreviewUrl || null;
+  const isImagePreview = Boolean(viewerVolume && viewerVolume.startsWith('data:image/'));
   const selectedOverlayVolumes = useMemo(() => {
     if (!hasModelResult || !viewerState.showOverlay) {
       return [];
@@ -309,7 +310,9 @@ const DashboardPage = () => {
   const showStackButton = !hasStackedPreview && !isProcessing && !isDone;
   const showRunButton = hasStackedPreview && !isProcessing && !isDone;
 
-  const baseVolume = useMemo(() => (viewerVolume ? [{ url: viewerVolume }] : []), [viewerVolume]);
+  const baseVolume = useMemo(() => (
+    viewerVolume && !isImagePreview ? [{ url: viewerVolume }] : []
+  ), [viewerVolume, isImagePreview]);
   const viewerBusyLabel = isStacking
     ? 'Stacking input files...'
     : isProcessing
@@ -577,20 +580,30 @@ const DashboardPage = () => {
                   {isDone && <Badge color="green">Complete</Badge>}
                 </div>
                 <div className="h-[500px] lg:h-[600px]">
-                  <MRIViewer
-                    key={viewerInstanceKey}
-                    volumes={baseVolume}
-                    overlayVolumes={selectedOverlayVolumes}
-                    overlayOpacity={viewerState.overlayOpacity / 100}
-                    sliceX={viewerState.sliceX}
-                    sliceY={viewerState.sliceY}
-                    sliceZ={viewerState.sliceZ}
-                    zoom={viewerState.zoom}
-                    isUpdating={isViewerUpdating}
-                    isBusy={isStacking || isProcessing}
-                    busyLabel={viewerBusyLabel}
-                    onLoadError={handleViewerLoadError}
-                  />
+                  {isImagePreview ? (
+                    <div className="w-full h-full flex items-center justify-center bg-[#07142A] rounded-xl border border-white/10 p-3">
+                      <img
+                        src={viewerVolume}
+                        alt="Stack preview"
+                        className="max-w-full max-h-full object-contain rounded-lg"
+                      />
+                    </div>
+                  ) : (
+                    <MRIViewer
+                      key={viewerInstanceKey}
+                      volumes={baseVolume}
+                      overlayVolumes={selectedOverlayVolumes}
+                      overlayOpacity={viewerState.overlayOpacity / 100}
+                      sliceX={viewerState.sliceX}
+                      sliceY={viewerState.sliceY}
+                      sliceZ={viewerState.sliceZ}
+                      zoom={viewerState.zoom}
+                      isUpdating={isViewerUpdating}
+                      isBusy={isStacking || isProcessing}
+                      busyLabel={viewerBusyLabel}
+                      onLoadError={handleViewerLoadError}
+                    />
+                  )}
                 </div>
               </Card>
 
