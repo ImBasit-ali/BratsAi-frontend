@@ -39,7 +39,7 @@ const AboutPage = () => {
             <p>
               Our project leverages the power of deep learning, specifically a modified 3D U-Net
               architecture, to automatically segment post-treatment brain tumors from multi-modal
-              MRI scans. By analyzing T1-weighted, T1-CE, T2-weighted, and FLAIR modalities
+              MRI scans. By analyzing T1n, T1c, T2w, and T2f modalities
               together, our model can distinguish between different tumor subregions including
               enhancing tumor, non-enhancing tumor core, surrounding FLAIR hyperintensity, and
               resection cavity.

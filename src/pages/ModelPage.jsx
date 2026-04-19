@@ -34,10 +34,10 @@ const ModelPage = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="mb-8"
+              className="mb-8 text-center flex flex-col items-center"
             >
               <h2 className="text-2xl font-bold text-primary mb-4">3D U-Net Architecture</h2>
-              <p className="text-textColor max-w-3xl leading-relaxed">
+              <p className="text-textColor max-w-3xl leading-relaxed mx-auto">
                 Our model is based on the U-Net architecture, a convolutional neural network
                 originally designed for biomedical image segmentation. The encoder-decoder
                 structure with skip connections enables precise localization while maintaining
@@ -79,7 +79,7 @@ const ModelPage = () => {
                     ))}
                   </div>
                 </Card>
-
+ {
                 <Card>
                   <h3 className="text-lg font-bold text-primary mb-3">Input Modalities</h3>
                   <p className="text-textColor text-sm leading-relaxed mb-4">
@@ -88,10 +88,10 @@ const ModelPage = () => {
                   </p>
                   <div className="space-y-3">
                     {[
-                      { mod: 'T1-weighted', desc: 'Anatomical structure baseline' },
-                      { mod: 'T1-CE', desc: 'Contrast-enhanced for active tumor' },
-                      { mod: 'T2-weighted', desc: 'Highlights edema and fluid' },
-                      { mod: 'FLAIR', desc: 'Suppresses CSF for edema detection' },
+                      { mod: 'T1n', desc: 'Anatomical structure baseline' },
+                      { mod: 'T1c', desc: 'Contrast-enhanced for active tumor' },
+                      { mod: 'T2w', desc: 'Highlights edema and fluid' },
+                      { mod: 'T2f', desc: 'Suppresses CSF for edema detection' },
                     ].map((item) => (
                       <div key={item.mod} className="flex items-center gap-3 p-2 rounded-lg hover:bg-surface transition-colors">
                         <div className="w-2 h-2 rounded-full bg-teal" />
@@ -102,7 +102,8 @@ const ModelPage = () => {
                       </div>
                     ))}
                   </div>
-                </Card>
+                </Card> 
+                }
               </div>
             </motion.div>
           </section>

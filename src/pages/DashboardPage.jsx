@@ -410,18 +410,6 @@ const DashboardPage = () => {
                       <Badge color="green">Stacked</Badge>
                     )}
 
-                    {showRunButton && (
-                      <Button
-                        variant="teal"
-                        size="lg"
-                        className="w-full"
-                        disabled={!canRunSegmentation}
-                        onClick={handleRunSegmentation}
-                        icon="🧠"
-                      >
-                        Run Segmentation
-                      </Button>
-                    )}
                   </div>
                 </Card>
               )}
@@ -501,6 +489,19 @@ const DashboardPage = () => {
               )}
 
               <div className="space-y-3">
+                {showRunButton && (
+                  <Button
+                    variant="teal"
+                    size="lg"
+                    className="w-full"
+                    disabled={!canRunSegmentation}
+                    onClick={handleRunSegmentation}
+                    icon="🧠"
+                  >
+                    Run Segmentation
+                  </Button>
+                )}
+
                 {isProcessing && (
                   <Button
                     variant="teal"

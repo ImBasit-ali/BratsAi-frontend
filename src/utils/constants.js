@@ -88,21 +88,24 @@ export const PROCESSING_STEPS = [
 export const TEAM_MEMBERS = [
   {
     name: 'Mutyyaba Asghar',
-    role: 'AI Researcher',
-    bio: 'PhD in Medical Imaging, specializing in deep learning for brain tumor segmentation with 10+ years of experience.',
-    avatar: null,
+    role: 'Computer Vision & Deep Learning Researcher',
+    bio: 'M.Phil. in Computer Science and 4 years of experience in image processing, computer vision and Deep learning.',
+    avatar: '/Mutyyba%20Asghar.jpg.jpeg',
+    linkedin: 'https://www.linkedin.com/in/mutyyba-asghar/',
   },
   {
     name: 'Muhammad Wahaj Sajid',
-    role: 'Native Android Developer',
-    bio: 'Skilled in Kotlin and Java, responsible for developing the Android application interface for seamless user experience.',
-    avatar: null,
+    role: 'Computer Vision Researcher & Software Engineer',
+    bio: 'Final-year computer science student skilled in medical imaging and native android mobile applications.',
+    avatar: '/Profile-Picture.jpeg',
+    linkedin:' https://www.linkedin.com/in/muhammad-wahaj-s-172134229/',
   },
   {
     name: 'Basit Ali',
-    role: 'Flutter,Django Developer',
-    bio: 'Expert in cross-platform mobile development with Flutter and backend development with Django, ensuring robust and scalable application architecture.',
-    avatar: null,
+    role: 'Computer Vision Researcher & Software Engineer',
+    bio: 'Final-year computer science student skilled in medical imaging and Flutter, Django developer.',
+    avatar: '/Basit%20Ali.jpeg',
+    linkedin: 'https://www.linkedin.com/in/basit-ali-2902aa333/',
   },
 
 ];

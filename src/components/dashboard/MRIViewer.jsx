@@ -1,6 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
 import { Niivue } from '@niivue/niivue';
 
+const MASK_COLORMAP_KEYS = {
+  yellow: 'maskSolidYellow',
+  blue: 'maskSolidBlue',
+  red: 'maskSolidRed',
+};
+
+const createSolidMaskColormap = (rgb) => ({
+  R: [0, rgb[0]],
+  G: [0, rgb[1]],
+  B: [0, rgb[2]],
+  A: [0, 255],
+  I: [0, 255],
+});
+
+const registerMaskColormaps = (nv) => {
+  nv.addColormap(MASK_COLORMAP_KEYS.yellow, createSolidMaskColormap([250, 204, 21]));
+  nv.addColormap(MASK_COLORMAP_KEYS.blue, createSolidMaskColormap([59, 130, 246]));
+  nv.addColormap(MASK_COLORMAP_KEYS.red, createSolidMaskColormap([239, 68, 68]));
+};
+
+const resolveOverlayColormap = (colormap) => MASK_COLORMAP_KEYS[colormap] || MASK_COLORMAP_KEYS.red;
+
 const MRIViewer = ({
   volumes = [],
   overlayVolumes = [],
@@ -33,9 +55,15 @@ const MRIViewer = ({
       show3Dcrosshair: true,
       crosshairColor: [0, 0.67, 0.59, 0.5],
       isRadiologicalConvention: false,
+      isNearestInterpolation: true,
+      multiplanarShowRender: 0,
+      multiplanarForceRender: false,
     });
 
     nv.attachToCanvas(canvasRef.current);
+    registerMaskColormaps(nv);
+    nv.setAdditiveBlend(false);
+    nv.setInterpolation(true);
     nvRef.current = nv;
 
     // Set default view
@@ -67,17 +95,23 @@ const MRIViewer = ({
         const volumeList = volumes.map((v, i) => ({
           url: v.url,
           colormap: i === 0 ? 'gray' : 'actc',
-          opacity: i === 0 ? (hasOverlayVolumes ? 0.78 : 1) : overlayOpacity,
+          opacity: i === 0 ? 1 : overlayOpacity,
+          cal_min: i === 0 ? 1 : undefined,
+          isTransparentBelowCalMin: i === 0 ? true : undefined,
+          ignoreZeroVoxels: i === 0 ? true : undefined,
         }));
 
         overlayVolumes.forEach((overlay) => {
           if (overlay?.url) {
             volumeList.push({
               url: overlay.url,
-              colormap: overlay.colormap || 'actc',
-              opacity: Math.max(overlayOpacity, 0.9),
-              cal_min: 0.5,
+              colormap: resolveOverlayColormap(overlay.colormap),
+              opacity: Math.min(Math.max(overlayOpacity, 0), 0.65),
+              cal_min: 1,
               cal_max: 1,
+              isTransparentBelowCalMin: true,
+              alphaThreshold: true,
+              ignoreZeroVoxels: true,
               visible: true,
             });
           }
@@ -144,7 +178,11 @@ const MRIViewer = ({
     if (!nv || !Array.isArray(nv.volumes) || nv.volumes.length === 0) return;
 
     nv.volumes.forEach((vol, index) => {
-      vol.opacity = index === 0 ? 1 : overlayOpacity;
+      vol.opacity = index === 0 ? 1 : Math.min(Math.max(overlayOpacity, 0), 0.65);
+      if (index > 0) {
+        vol.cal_min = 1;
+        vol.cal_max = 1;
+      }
     });
 
     if (typeof nv.updateGLVolume === 'function') {

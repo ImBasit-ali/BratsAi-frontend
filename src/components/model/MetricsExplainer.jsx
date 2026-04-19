@@ -2,20 +2,7 @@ import { motion } from 'framer-motion';
 import Card from '../ui/Card';
 
 const metrics = [
-  {
-    name: 'Dice Similarity Coefficient (DSC)',
-    formula: 'DSC = 2|P ∩ G| / (|P| + |G|)',
-    description: 'Measures the overlap between the predicted segmentation (P) and ground truth (G). A DSC of 1.0 indicates perfect overlap.',
-    range: '0 to 1 (higher is better)',
-    icon: '🎯',
-  },
-  {
-    name: 'Sensitivity (Recall)',
-    formula: 'Sens = TP / (TP + FN)',
-    description: 'Measures the proportion of actual tumor voxels that are correctly identified. High sensitivity means fewer missed tumor regions.',
-    range: '0 to 1 (higher is better)',
-    icon: '📡',
-  },
+
   {
     name: 'Specificity',
     formula: 'Spec = TN / (TN + FP)',
