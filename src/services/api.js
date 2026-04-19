@@ -19,6 +19,9 @@ const api = axios.create({
 const PREVIEW_MODALITY_PRIORITY = ['t1', 't1ce', 't2', 'flair'];
 const STACK_PREVIEW_TIMEOUT_MS = 120000;
 
+const pickFileByModality = (files, modality) =>
+  files.find((item) => item?.modality === modality && item?.file)?.file || null;
+
 const pickPreviewSourceFile = (files) => {
   if (!Array.isArray(files) || files.length === 0) return null;
 
@@ -94,6 +97,21 @@ export const stackInputs = async (files, options = {}) => {
     formData.append('files', fileObj.file);
     formData.append('modalities', fileObj.modality);
   });
+
+  if (files.length === 4) {
+    const t1 = pickFileByModality(files, 't1');
+    const t1ce = pickFileByModality(files, 't1ce');
+    const t2 = pickFileByModality(files, 't2');
+    const flair = pickFileByModality(files, 'flair');
+
+    if (t1 && t1ce && t2 && flair) {
+      formData.append('t1', t1);
+      formData.append('t1ce', t1ce);
+      formData.append('t2', t2);
+      formData.append('flair', flair);
+    }
+  }
+
   formData.append('preview_mode', 'fast');
 
   try {
@@ -101,6 +119,10 @@ export const stackInputs = async (files, options = {}) => {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: STACK_PREVIEW_TIMEOUT_MS,
     });
+
+    if (response.data?.success === false) {
+      throw new Error(response.data?.error || 'Stack preview service is unavailable');
+    }
 
     return response.data;
   } catch (error) {
