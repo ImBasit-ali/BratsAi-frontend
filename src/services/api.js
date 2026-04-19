@@ -61,9 +61,7 @@ export const startSegmentation = async (files, settings) => {
 
   formData.append('regions', JSON.stringify(settings.regions));
 
-  const response = await api.post(buildApiUrl('/segment/'), formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  });
+  const response = await api.post(buildApiUrl('/segment/'), formData);
 
   return response.data;
 };
@@ -97,7 +95,6 @@ export const stackInputs = async (files, options = {}) => {
 
   try {
     const response = await api.post(buildApiUrl('/segment/stack/'), formData, {
-      headers: { 'Content-Type': 'multipart/form-data' },
       timeout: STACK_PREVIEW_TIMEOUT_MS,
     });
 
