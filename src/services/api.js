@@ -50,7 +50,7 @@ const createLocalPreviewUrl = (files) => {
   return URL.createObjectURL(sourceFile);
 };
 
-// Upload NIfTI files and start segmentation
+// Upload NIfTI files and start segmentation — returns job_id immediately
 export const startSegmentation = async (files, settings) => {
   const formData = new FormData();
 
@@ -139,13 +139,13 @@ export const stackInputs = async (files, options = {}) => {
   }
 };
 
-// Get segmentation job status
+// Get segmentation job status — includes stacked_url, mask_url when done
 export const getSegmentationStatus = async (jobId) => {
   const response = await api.get(buildApiUrl(`/segment/${jobId}/status/`));
   return response.data;
 };
 
-// Get segmentation result
+// Get segmentation result — includes stacked_url, mask_url, overlays
 export const getSegmentationResult = async (jobId) => {
   const response = await api.get(buildApiUrl(`/segment/${jobId}/result/`));
   return response.data;
@@ -172,6 +172,27 @@ export const downloadSegmentationFile = async (jobId) => {
 // Download segmentation file
 export const getDownloadUrl = (jobId) => {
   return buildApiUrl(`/segment/${jobId}/download/`);
+};
+
+/**
+ * Resolve a file URL — handles both local /media/ paths and
+ * external Supabase URLs transparently.
+ */
+export const resolveFileUrl = (url) => {
+  if (!url) return null;
+
+  // Already absolute
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+
+  // Relative path — prepend API base if production
+  if (API_BASE_URL) {
+    const base = API_BASE_URL.replace(/\/api\/?$/, '');
+    return `${base}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+
+  return url;
 };
 
 export default api;

@@ -52,10 +52,10 @@ export const TUMOR_REGIONS = {
 
 // MRI Modalities
 export const MODALITIES = [
-  { value: 't1', label: 'T1-weighted' },
-  { value: 't1ce', label: 'T1-CE ' },
-  { value: 't2', label: 'T2-weighted' },
-  { value: 'flair', label: 'FLAIR' },
+  { value: 't1', label: 'T1n' },
+  { value: 't1ce', label: 'T1c ' },
+  { value: 't2', label: 'T2w' },
+  { value: 'flair', label: 'T2f' },
 ];
 
 export const FILE_NAMING_GUIDES = {

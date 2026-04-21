@@ -7,6 +7,8 @@ const useSegmentation = () => {
   const [progress, setProgress] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [stackedUrl, setStackedUrl] = useState(null);
+  const [maskUrl, setMaskUrl] = useState(null);
   const pollingRef = useRef(null);
 
   const clearPolling = useCallback(() => {
@@ -21,14 +23,25 @@ const useSegmentation = () => {
     pollingRef.current = setInterval(async () => {
       try {
         const statusData = await getSegmentationStatus(id);
-        setStatus(statusData.status);
+        setStatus(statusData.status === 'failed' ? 'error' : statusData.status);
         setProgress(statusData.progress);
+
+        // Capture URLs from status response as they become available
+        if (statusData.stacked_url) {
+          setStackedUrl(statusData.stacked_url);
+        }
+        if (statusData.mask_url) {
+          setMaskUrl(statusData.mask_url);
+        }
 
         if (statusData.status === 'done') {
           clearPolling();
           const resultData = await getSegmentationResult(id);
           setResult(resultData);
-        } else if (statusData.status === 'error') {
+          // Result may have more accurate URLs
+          if (resultData.stacked_url) setStackedUrl(resultData.stacked_url);
+          if (resultData.mask_url) setMaskUrl(resultData.mask_url);
+        } else if (statusData.status === 'error' || statusData.status === 'failed') {
           clearPolling();
           setError(statusData.error || 'Segmentation failed');
         }
@@ -46,6 +59,8 @@ const useSegmentation = () => {
       setError(null);
       setResult(null);
       setProgress(null);
+      setStackedUrl(null);
+      setMaskUrl(null);
 
       const data = await startSegmentation(files, settings);
       setJobId(data.id);
@@ -67,6 +82,8 @@ const useSegmentation = () => {
     setProgress(null);
     setResult(null);
     setError(null);
+    setStackedUrl(null);
+    setMaskUrl(null);
   }, [clearPolling]);
 
   return {
@@ -75,6 +92,8 @@ const useSegmentation = () => {
     progress,
     result,
     error,
+    stackedUrl,
+    maskUrl,
     runSegmentation,
     reset,
   };

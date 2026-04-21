@@ -41,7 +41,7 @@ const AboutPage = () => {
               architecture, to automatically segment post-treatment brain tumors from multi-modal
               MRI scans. By analyzing T1n, T1c, T2w, and T2f modalities
               together, our model can distinguish between different tumor subregions including
-              enhancing tumor, non-enhancing tumor core, surrounding FLAIR hyperintensity, and
+              enhancing tumor, non-enhancing tumor core, surounding non-flair hyperintensity, and
               resection cavity.
             </p>
             <p>

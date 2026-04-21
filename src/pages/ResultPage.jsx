@@ -36,7 +36,7 @@ const ResultPage = () => {
     },
   });
 
-  const modelInput = result?.model_input_url;
+  const modelInput = result?.stacked_url || result?.model_input_url;
   const selectedOverlayVolumes = result?.overlays && viewerState.showOverlay
     ? OVERLAY_MASKS
       .filter((mask) => viewerState.selectedMasks[mask.key] && result?.overlays?.[mask.key])

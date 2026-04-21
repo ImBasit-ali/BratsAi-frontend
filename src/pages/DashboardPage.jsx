@@ -52,7 +52,7 @@ const DashboardPage = () => {
   });
 
   // Segmentation hook
-  const { jobId, status, progress, result, error, runSegmentation, reset } = useSegmentation();
+  const { jobId, status, progress, result, error, stackedUrl, maskUrl, runSegmentation, reset } = useSegmentation();
 
   const markViewerUpdating = useCallback(() => {
     setIsViewerUpdating(true);
@@ -281,7 +281,7 @@ const DashboardPage = () => {
   const showUploadPanel = !hasStackedPreview;
   const showViewerPanel = hasStackedPreview;
   const hasModelResult = isDone && Boolean(result?.overlays);
-  const viewerVolume = result?.model_input_url || stackPreviewUrl || null;
+  const viewerVolume = stackedUrl || result?.model_input_url || stackPreviewUrl || null;
   const isImagePreview = Boolean(viewerVolume && viewerVolume.startsWith('data:image/'));
   const selectedOverlayVolumes = useMemo(() => {
     if (!hasModelResult || !viewerState.showOverlay) {
