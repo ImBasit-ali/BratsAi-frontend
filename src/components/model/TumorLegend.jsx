@@ -23,7 +23,7 @@ const TumorLegend = () => {
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-bold text-primary text-sm">{key}</span>
-                <span className="text-textColor text-sm">— {region.label}</span>
+                <span className="text-textColor text-sm">{region.label}</span>
               </div>
               <p className="text-textColor/70 text-xs mt-1">{region.description}</p>
             </div>

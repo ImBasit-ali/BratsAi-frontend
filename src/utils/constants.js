@@ -129,12 +129,12 @@ export const MODEL_HIGHLIGHTS = [
   },
   {
     title: 'Multi-Region Analysis',
-    description: 'Segments 4 distinct tumor subregions including enhancing tumor, core, edema, and resection cavity.',
+    description: 'Segments 4 distinct tumor subregions, including Enhancing Tumor (ET), Non-Enhancing Tumor Core (NETC), Surrounding Non-Flair Hyperintensity (SNFH), and Resection Cavity (RC)',
     icon: '🎯',
   },
   {
     title: 'Clinical Metrics',
-    description: 'Provides Dice Score, sensitivity, and specificity for each segmented region.',
+    description: 'Provides a dice score and HD95 for each segmented region.',
     icon: '📈',
   },
 ];

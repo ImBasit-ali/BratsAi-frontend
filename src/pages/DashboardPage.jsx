@@ -347,7 +347,7 @@ const DashboardPage = () => {
             animate={{ opacity: 1, y: 0 }}
             className="mb-8"
           >
-            <h1 className="text-3xl font-bold text-primary">Segmentation Dashboard</h1>
+            <h1 className="text-3xl font-bold text-primary">Segmentation Arena</h1>
             <p className="text-textColor mt-2">
               Upload MRI scans, configure settings, and run AI-powered tumor segmentation
             </p>

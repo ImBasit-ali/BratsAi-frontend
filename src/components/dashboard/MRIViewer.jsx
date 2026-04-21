@@ -209,7 +209,7 @@ const MRIViewer = ({
       ? 'Loading'
       : hasVolumes
         ? 'MRI Loaded'
-        : 'Awaiting Input';
+        : '';
 
   return (
     <div className="relative w-full h-full min-h-[400px] bg-[#0D1726] rounded-2xl overflow-hidden border border-white/10">
@@ -228,9 +228,11 @@ const MRIViewer = ({
       </div>
 
       {/* Professional top status strip */}
-      <div className="absolute top-4 right-4 px-3 py-1.5 rounded-lg bg-black/35 backdrop-blur-sm border border-white/10 text-[11px] font-semibold text-white/80">
-        {statusText}
-      </div>
+      {statusText && (
+        <div className="absolute top-4 right-4 px-3 py-1.5 rounded-lg bg-black/35 backdrop-blur-sm border border-white/10 text-[11px] font-semibold text-white/80">
+          {statusText}
+        </div>
+      )}
 
       {/* View mode buttons */}
       <div className="absolute top-4 left-4 flex gap-1 bg-black/40 backdrop-blur-sm rounded-xl p-1">

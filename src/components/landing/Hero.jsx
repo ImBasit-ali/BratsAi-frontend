@@ -4,7 +4,7 @@ import Button from '../ui/Button';
 
 const Hero = () => {
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-hero">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden gradient-hero pt-24 sm:pt-28 pb-8">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-teal/10 rounded-full blur-3xl animate-float" />
@@ -24,7 +24,7 @@ const Hero = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/10 backdrop-blur-sm text-sm text-teal-300 font-medium mb-8"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/12 border border-white/15 backdrop-blur-sm text-sm text-teal-200 font-semibold mb-8 whitespace-nowrap shadow-lg shadow-black/10"
         >
           <span className="w-2 h-2 rounded-full bg-teal animate-pulse" />
           Powered by Deep Learning

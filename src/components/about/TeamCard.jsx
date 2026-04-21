@@ -17,7 +17,7 @@ const TeamCard = ({ member, index }) => {
       viewport={{ once: true }}
       transition={{ delay: index * 0.15, duration: 0.6 }}
     >
-      <Card className="text-center h-full group">
+      <Card className="text-center h-full group flex flex-col">
         {/* Avatar */}
         <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${gradients[index % gradients.length]} flex items-center justify-center mx-auto mb-4 shadow-lg group-hover:scale-105 transition-transform duration-300 overflow-hidden`}>
           {member.avatar ? (
@@ -36,16 +36,25 @@ const TeamCard = ({ member, index }) => {
         <p className="text-teal font-medium text-sm mb-3">{member.role}</p>
         <p className="text-textColor text-sm leading-relaxed mb-4">{member.bio}</p>
 
-        {member.linkedin && (
-          <a
-            href={member.linkedin}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-lg border border-teal/35 bg-teal/10 px-4 py-2 text-sm font-semibold text-teal transition-colors hover:bg-teal/20"
-          >
-            Read More
-          </a>
-        )}
+        <div className="mt-auto pt-2">
+          {member.linkedin ? (
+            <a
+              href={member.linkedin}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-lg border border-teal/35 bg-teal/10 px-4 py-2 text-sm font-semibold text-teal transition-colors hover:bg-teal/20"
+            >
+              Read More
+            </a>
+          ) : (
+            <span
+              aria-hidden="true"
+              className="inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-semibold opacity-0"
+            >
+              Read More
+            </span>
+          )}
+        </div>
       </Card>
     </motion.div>
   );
