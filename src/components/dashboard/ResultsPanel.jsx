@@ -20,6 +20,13 @@ const ResultsPanel = ({ result, jobId }) => {
     return 'red';
   };
 
+  const getHd95Color = (score) => {
+    if (score <= 2.0) return 'green';
+    if (score <= 2.5) return 'teal';
+    if (score <= 3.0) return 'orange';
+    return 'red';
+  };
+
   const handleDownloadSegmentation = async () => {
     if (!jobId || isDownloading) return;
 
@@ -57,13 +64,12 @@ const ResultsPanel = ({ result, jobId }) => {
     };
 
     const rows = [
-      ['region', 'volume_ml', 'dsc', 'sensitivity', 'specificity'],
+      ['region', 'volume_ml', 'dsc', 'hd95'],
       ...Object.entries(metrics).map(([region, data]) => ([
         region,
         data?.volume_ml ?? '',
         data?.dsc ?? '',
-        data?.sensitivity ?? '',
-        data?.specificity ?? '',
+        data?.hd95 ?? '',
       ])),
     ];
 
@@ -108,8 +114,7 @@ const ResultsPanel = ({ result, jobId }) => {
                 <th className="text-left text-xs font-semibold text-primary/50 uppercase tracking-wider px-5 py-3">Region</th>
                 <th className="text-center text-xs font-semibold text-primary/50 uppercase tracking-wider px-5 py-3">Volume (ml)</th>
                 <th className="text-center text-xs font-semibold text-primary/50 uppercase tracking-wider px-5 py-3">DSC</th>
-                <th className="text-center text-xs font-semibold text-primary/50 uppercase tracking-wider px-5 py-3">Sensitivity</th>
-                <th className="text-center text-xs font-semibold text-primary/50 uppercase tracking-wider px-5 py-3">Specificity</th>
+                <th className="text-center text-xs font-semibold text-primary/50 uppercase tracking-wider px-5 py-3">HD95 (mm)</th>
               </tr>
             </thead>
             <tbody>
@@ -131,10 +136,7 @@ const ResultsPanel = ({ result, jobId }) => {
                     <Badge color={getScoreColor(data.dsc)}>{data.dsc?.toFixed(3)}</Badge>
                   </td>
                   <td className="text-center px-5 py-3">
-                    <Badge color={getScoreColor(data.sensitivity)}>{data.sensitivity?.toFixed(3)}</Badge>
-                  </td>
-                  <td className="text-center px-5 py-3">
-                    <Badge color={getScoreColor(data.specificity)}>{data.specificity?.toFixed(3)}</Badge>
+                    <Badge color={getHd95Color(data.hd95)}>{data.hd95?.toFixed(2)}</Badge>
                   </td>
                 </tr>
               ))}

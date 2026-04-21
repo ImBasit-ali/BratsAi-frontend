@@ -2,13 +2,19 @@ import { motion } from 'framer-motion';
 import Card from '../ui/Card';
 
 const metrics = [
-
   {
-    name: 'Specificity',
-    formula: 'Spec = TN / (TN + FP)',
-    description: 'Measures the proportion of non-tumor voxels correctly identified as non-tumor. High specificity means fewer false alarms.',
+    name: 'DSC',
+    formula: 'DSC = 2|X ∩ Y| / (|X| + |Y|)',
+    description: 'Measures overlap between predicted segmentation and ground truth labels. Higher DSC indicates stronger agreement.',
     range: '0 to 1 (higher is better)',
-    icon: '🛡️',
+    icon: '🎯',
+  },
+  {
+    name: 'HD95',
+    formula: 'HD95 = 95th percentile distance',
+    description: 'Measures the boundary distance between prediction and ground truth using the 95th percentile to reduce outlier impact.',
+    range: '≥ 0 mm (lower is better)',
+    icon: '📏',
   },
 ];
 
