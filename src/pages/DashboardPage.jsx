@@ -180,9 +180,21 @@ const DashboardPage = () => {
 
     try {
       setIsStacking(true);
-      const response = await stackInputs(files);
-      setStackPreviewUrl(response.preview_url);
+      // Show an immediate local preview so the MRI viewer updates without waiting for the backend.
+      const fastPreview = await stackInputs(files, { useBackendPreview: false });
+      setStackPreviewUrl(fastPreview.preview_url);
       setUploadError(null);
+
+      // If the backend stack preview is available, upgrade the viewer to that result.
+      stackInputs(files)
+        .then((response) => {
+          if (response?.preview_url) {
+            setStackPreviewUrl(response.preview_url);
+          }
+        })
+        .catch(() => {
+          // Keep the fast local preview if the backend preview is slow or unavailable.
+        });
     } catch (error) {
       setUploadError(error.response?.data?.error || error.message || 'Failed to stack inputs.');
     } finally {
