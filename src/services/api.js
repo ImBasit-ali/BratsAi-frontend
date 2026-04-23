@@ -30,17 +30,6 @@ const pickPreviewSourceFile = (files) => {
   return files.find((item) => item?.file)?.file || null;
 };
 
-const pickPreviewSourceItem = (files) => {
-  if (!Array.isArray(files) || files.length === 0) return null;
-
-  for (const modality of PREVIEW_MODALITY_PRIORITY) {
-    const match = files.find((item) => item?.modality === modality && item?.file);
-    if (match) return match;
-  }
-
-  return files.find((item) => item?.file) || null;
-};
-
 const createLocalPreviewUrl = (files) => {
   const sourceFile = pickPreviewSourceFile(files);
   if (!sourceFile) {
@@ -85,10 +74,7 @@ export const stackInputs = async (files, options = {}) => {
   }
 
   const formData = new FormData();
-  const previewSource = pickPreviewSourceItem(files);
-  const previewUploadList = files.length > 1 && previewSource ? [previewSource] : files;
-
-  previewUploadList.forEach((fileObj) => {
+  files.forEach((fileObj) => {
     formData.append('files', fileObj.file);
     formData.append('modalities', fileObj.modality);
   });
