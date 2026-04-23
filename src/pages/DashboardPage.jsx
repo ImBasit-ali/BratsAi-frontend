@@ -180,21 +180,17 @@ const DashboardPage = () => {
 
     try {
       setIsStacking(true);
-      // Show an immediate local preview so the MRI viewer updates without waiting for the backend.
-      const fastPreview = await stackInputs(files, { useBackendPreview: false });
-      setStackPreviewUrl(fastPreview.preview_url);
+      // Call backend to perform full stacking and get both preview + stacked_url
+      const response = await stackInputs(files);
+      
+      if (response?.stacked_url) {
+        // Use the full stacked NIfTI volume URL for the viewer to show all slices
+        setStackPreviewUrl(response.stacked_url);
+      } else if (response?.preview_url) {
+        // Fallback to preview if stacked_url is not available
+        setStackPreviewUrl(response.preview_url);
+      }
       setUploadError(null);
-
-      // If the backend stack preview is available, upgrade the viewer to that result.
-      stackInputs(files)
-        .then((response) => {
-          if (response?.preview_url) {
-            setStackPreviewUrl(response.preview_url);
-          }
-        })
-        .catch(() => {
-          // Keep the fast local preview if the backend preview is slow or unavailable.
-        });
     } catch (error) {
       setUploadError(error.response?.data?.error || error.message || 'Failed to stack inputs.');
     } finally {
