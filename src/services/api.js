@@ -74,12 +74,9 @@ export const stackInputs = async (files, options = {}) => {
   }
 
   const formData = new FormData();
-  const previewSource = pickPreviewSourceFile(files);
-  const previewUploadList = files.length > 1 && previewSource
-    ? files.filter((fileObj) => fileObj?.file === previewSource)
-    : files;
 
-  previewUploadList.forEach((fileObj) => {
+  // Send ALL files to backend for proper full stacking
+  files.forEach((fileObj) => {
     formData.append('files', fileObj.file);
     formData.append('modalities', fileObj.modality);
   });
