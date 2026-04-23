@@ -74,7 +74,12 @@ export const stackInputs = async (files, options = {}) => {
   }
 
   const formData = new FormData();
-  files.forEach((fileObj) => {
+  const previewSource = pickPreviewSourceFile(files);
+  const previewUploadList = files.length > 1 && previewSource
+    ? files.filter((fileObj) => fileObj?.file === previewSource)
+    : files;
+
+  previewUploadList.forEach((fileObj) => {
     formData.append('files', fileObj.file);
     formData.append('modalities', fileObj.modality);
   });
