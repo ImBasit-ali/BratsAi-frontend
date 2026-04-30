@@ -1,6 +1,8 @@
 import Slider from '../ui/Slider';
+import { MODALITIES } from '../../utils/constants';
 
 const ViewerControls = ({
+  showMainControls = true,
   sliceX = 50,
   sliceY = 50,
   sliceZ = 50,
@@ -17,7 +19,14 @@ const ViewerControls = ({
   onOverlayOpacityChange,
   onMaskToggle,
   onSelectAllMasks,
+  // Individual uploads props
+  individualUploads = [],
+  uploadVisibility = {},
+  onUploadVisibilityChange,
 }) => {
+  const allUploadsVisible = individualUploads.length > 0 && individualUploads.every((upload) => uploadVisibility[upload.modality]);
+  const modalityLabelByValue = MODALITIES.reduce((acc, item) => ({ ...acc, [item.value]: item.label.trim() }), {});
+
   return (
     <div className="space-y-4 p-4 bg-white rounded-2xl shadow-sm border border-gray-100">
       <div className="flex items-center justify-between">
@@ -35,43 +44,97 @@ const ViewerControls = ({
         )}
       </div>
 
-      {/* Slice sliders */}
-      <Slider
-        label="Axial Slice"
-        value={sliceX}
-        onChange={(v) => onSliceChange?.('x', v)}
-        min={0}
-        max={100}
-        unit=""
-      />
-      <Slider
-        label="Sagittal Slice"
-        value={sliceY}
-        onChange={(v) => onSliceChange?.('y', v)}
-        min={0}
-        max={100}
-        unit=""
-      />
-      <Slider
-        label="Coronal Slice"
-        value={sliceZ}
-        onChange={(v) => onSliceChange?.('z', v)}
-        min={0}
-        max={100}
-        unit=""
-      />
+      {showMainControls && (
+        <>
+          {/* Slice sliders */}
+          <Slider
+            label="Axial Slice"
+            value={sliceX}
+            onChange={(v) => onSliceChange?.('x', v)}
+            min={0}
+            max={100}
+            unit=""
+          />
+          <Slider
+            label="Sagittal Slice"
+            value={sliceY}
+            onChange={(v) => onSliceChange?.('y', v)}
+            min={0}
+            max={100}
+            unit=""
+          />
+          <Slider
+            label="Coronal Slice"
+            value={sliceZ}
+            onChange={(v) => onSliceChange?.('z', v)}
+            min={0}
+            max={100}
+            unit=""
+          />
 
-      {/* Zoom */}
-      <Slider
-        label="Zoom"
-        value={zoom}
-        onChange={onZoomChange}
-        min={50}
-        max={300}
-        unit="%"
-      />
+          {/* Zoom */}
+          <Slider
+            label="Zoom"
+            value={zoom}
+            onChange={onZoomChange}
+            min={50}
+            max={300}
+            unit="%"
+          />
+        </>
+      )}
 
-      {showOverlayControls && (
+      {/* Individual uploads visibility (before stacking) */}
+      {individualUploads.length > 0 && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <h5 className="text-sm font-semibold text-primary/80">
+              View Individual Uploads
+            </h5>
+            <span className="text-xs font-medium text-primary/50 bg-primary/10 px-2 py-1 rounded">
+              {allUploadsVisible ? 'All Visible' : 'Custom'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            {individualUploads.map((upload) => (
+              <div
+                key={upload.modality}
+                className={`rounded-lg border p-2 transition-colors ${
+                  uploadVisibility[upload.modality]
+                    ? 'bg-teal/20 border border-teal text-teal'
+                    : 'bg-gray-100 border border-gray-200 text-gray-500'
+                }`}
+              >
+                <label className="flex items-center justify-between mb-2 cursor-pointer">
+                  <span className="text-xs font-semibold truncate" title={modalityLabelByValue[upload.modality] || upload.modality.toUpperCase()}>
+                    {modalityLabelByValue[upload.modality] || upload.modality.toUpperCase()}
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={uploadVisibility[upload.modality] || false}
+                    onChange={() => onUploadVisibilityChange?.(upload.modality)}
+                    className="w-4 h-4 rounded cursor-pointer"
+                  />
+                </label>
+
+                {upload.preview_url ? (
+                  <img
+                    src={upload.preview_url}
+                    alt={`${modalityLabelByValue[upload.modality] || upload.modality.toUpperCase()} preview`}
+                    className="w-full h-20 object-cover rounded-md border border-primary/10"
+                  />
+                ) : (
+                  <div className="w-full h-20 rounded-md border border-dashed border-primary/15 flex items-center justify-center text-[11px] text-textColor/60">
+                    Preview unavailable
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {showMainControls && showOverlayControls && (
         <>
           {/* Overlay toggle */}
           <div className="flex items-center justify-between p-2.5 rounded-xl hover:bg-surface transition-colors">

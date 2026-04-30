@@ -11,8 +11,8 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import useSegmentation from '../hooks/useSegmentation';
-import { stackInputs } from '../services/api';
-import { getMissingModalities } from '../utils/constants';
+import { stackInputs, viewIndividualUploads } from '../services/api';
+import { getMissingModalities, MODALITIES } from '../utils/constants';
 
 const OVERLAY_MASKS = [
   { key: 'enhancing_tumor', label: 'Enhancing Tumor', color: '#FACC15', colormap: 'yellow' },
@@ -25,15 +25,32 @@ const DashboardPage = () => {
   const [files, setFiles] = useState([]);
   const [uploadError, setUploadError] = useState(null);
   const [stackPreviewUrl, setStackPreviewUrl] = useState(null);
+  const [stackPreviewVolumes, setStackPreviewVolumes] = useState([]);
   const [isStacking, setIsStacking] = useState(false);
   const [isViewerUpdating, setIsViewerUpdating] = useState(false);
   const [viewerResetVersion, setViewerResetVersion] = useState(0);
   const viewerUpdateTimerRef = useRef(null);
+  
+  // Individual uploads preview (before stacking)
+  const [individualUploads, setIndividualUploads] = useState([]);
+  const [uploadVisibility, setUploadVisibility] = useState({
+    // e.g., { t1: true, t1ce: true, t2: true, flair: true }
+  });
 
   const revokeStackPreviewUrl = useCallback((url) => {
     if (typeof url === 'string' && url.startsWith('blob:')) {
       URL.revokeObjectURL(url);
     }
+  }, []);
+
+  const revokeStackPreviewVolumes = useCallback((volumes) => {
+    if (!Array.isArray(volumes)) return;
+
+    volumes.forEach((volume) => {
+      if (typeof volume?.url === 'string' && volume.url.startsWith('blob:')) {
+        URL.revokeObjectURL(volume.url);
+      }
+    });
   }, []);
 
   // Viewer state
@@ -74,13 +91,16 @@ const DashboardPage = () => {
 
   useEffect(() => () => {
     revokeStackPreviewUrl(stackPreviewUrl);
-  }, [stackPreviewUrl, revokeStackPreviewUrl]);
+    revokeStackPreviewVolumes(stackPreviewVolumes);
+  }, [stackPreviewUrl, stackPreviewVolumes, revokeStackPreviewUrl, revokeStackPreviewVolumes]);
 
   // File handlers
   const handleFilesAdded = useCallback((newFiles) => {
     setUploadError(null);
     revokeStackPreviewUrl(stackPreviewUrl);
+    revokeStackPreviewVolumes(stackPreviewVolumes);
     setStackPreviewUrl(null);
+    setStackPreviewVolumes([]);
     reset();
     setFiles((prev) => {
       const existingModalities = new Set(prev.map((file) => file.modality));
@@ -100,22 +120,48 @@ const DashboardPage = () => {
         return prev;
       }
 
+      // Asynchronously load individual uploads for preview
+      (async () => {
+        try {
+          const response = await viewIndividualUploads(merged);
+          if (response?.volumes) {
+            setIndividualUploads(response.volumes);
+            // Initialize all uploads as visible by default
+            const visibilityMap = {};
+            response.volumes.forEach((vol) => {
+              visibilityMap[vol.modality] = true;
+            });
+            setUploadVisibility(visibilityMap);
+          }
+        } catch (error) {
+          console.warn('Failed to load individual uploads for preview:', error);
+        }
+      })();
+
       return merged;
     });
-  }, [revokeStackPreviewUrl, reset, stackPreviewUrl]);
+  }, [revokeStackPreviewUrl, revokeStackPreviewVolumes, reset, stackPreviewUrl, stackPreviewVolumes]);
 
   const handleFileRemove = useCallback((fileId) => {
     revokeStackPreviewUrl(stackPreviewUrl);
+    revokeStackPreviewVolumes(stackPreviewVolumes);
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
     setUploadError(null);
     setStackPreviewUrl(null);
+    setStackPreviewVolumes([]);
+    setIndividualUploads([]);
+    setUploadVisibility({});
     reset();
-  }, [revokeStackPreviewUrl, reset, stackPreviewUrl]);
+  }, [revokeStackPreviewUrl, revokeStackPreviewVolumes, reset, stackPreviewUrl, stackPreviewVolumes]);
 
   const handleModalityChange = useCallback((fileId, modality) => {
     setUploadError(null);
     revokeStackPreviewUrl(stackPreviewUrl);
+    revokeStackPreviewVolumes(stackPreviewVolumes);
     setStackPreviewUrl(null);
+    setStackPreviewVolumes([]);
+    setIndividualUploads([]);
+    setUploadVisibility({});
     reset();
     setFiles((prev) => {
       const duplicate = prev.find((file) => file.modality === modality && file.id !== fileId);
@@ -126,12 +172,14 @@ const DashboardPage = () => {
 
       return prev.map((file) => (file.id === fileId ? { ...file, modality } : file));
     });
-  }, [revokeStackPreviewUrl, reset, stackPreviewUrl]);
+  }, [revokeStackPreviewUrl, revokeStackPreviewVolumes, reset, stackPreviewUrl, stackPreviewVolumes]);
 
   const handleFileDuplicate = useCallback((fileId) => {
     setUploadError(null);
     revokeStackPreviewUrl(stackPreviewUrl);
+    revokeStackPreviewVolumes(stackPreviewVolumes);
     setStackPreviewUrl(null);
+    setStackPreviewVolumes([]);
     reset();
     setFiles((prev) => {
       const sourceFile = prev.find((file) => file.id === fileId);
@@ -158,7 +206,15 @@ const DashboardPage = () => {
 
       return [...prev, duplicatedFile];
     });
-  }, [revokeStackPreviewUrl, reset, stackPreviewUrl]);
+  }, [revokeStackPreviewUrl, revokeStackPreviewVolumes, reset, stackPreviewUrl, stackPreviewVolumes]);
+
+  // Toggle individual upload visibility in viewer (before stacking)
+  const handleToggleUploadVisibility = useCallback((modality) => {
+    setUploadVisibility((prev) => ({
+      ...prev,
+      [modality]: !prev[modality],
+    }));
+  }, []);
 
   const handleStackFiles = async () => {
     if (files.length === 0) return;
@@ -180,15 +236,22 @@ const DashboardPage = () => {
 
     try {
       setIsStacking(true);
-      // Call backend to perform full stacking and get both preview + stacked_url
       const response = await stackInputs(files);
       
       if (response?.stacked_url) {
+        revokeStackPreviewVolumes(stackPreviewVolumes);
         // Use the full stacked NIfTI volume URL for the viewer to show all slices
         setStackPreviewUrl(response.stacked_url);
+        setStackPreviewVolumes([]);
       } else if (response?.preview_url) {
-        // Fallback to preview if stacked_url is not available
+        revokeStackPreviewVolumes(stackPreviewVolumes);
+        // Backend-provided preview image is the most reliable immediate preview for live stacking.
         setStackPreviewUrl(response.preview_url);
+        setStackPreviewVolumes([]);
+      } else if (response?.preview_volumes?.length) {
+        revokeStackPreviewUrl(stackPreviewUrl);
+        setStackPreviewUrl(null);
+        setStackPreviewVolumes(response.preview_volumes);
       }
       setUploadError(null);
     } catch (error) {
@@ -202,15 +265,19 @@ const DashboardPage = () => {
     if (stackPreviewUrl) {
       revokeStackPreviewUrl(stackPreviewUrl);
     }
+    if (stackPreviewVolumes.length) {
+      revokeStackPreviewVolumes(stackPreviewVolumes);
+    }
     setStackPreviewUrl(null);
+    setStackPreviewVolumes([]);
     setUploadError(message || error?.message || 'Failed to load MRI volume. Try stacking again.');
-  }, [revokeStackPreviewUrl, stackPreviewUrl]);
+  }, [revokeStackPreviewUrl, revokeStackPreviewVolumes, stackPreviewUrl, stackPreviewVolumes]);
 
   // Run segmentation
   const handleRunSegmentation = async () => {
     if (files.length === 0) return;
 
-    if (!stackPreviewUrl) {
+    if (!stackPreviewUrl && stackPreviewVolumes.length === 0) {
       setUploadError('Stack images first, then run segmentation.');
       return;
     }
@@ -247,10 +314,12 @@ const DashboardPage = () => {
   // Reset
   const handleReset = () => {
     revokeStackPreviewUrl(stackPreviewUrl);
+    revokeStackPreviewVolumes(stackPreviewVolumes);
     reset();
     setFiles([]);
     setUploadError(null);
     setStackPreviewUrl(null);
+    setStackPreviewVolumes([]);
     setViewerResetVersion((prev) => prev + 1);
   };
 
@@ -282,15 +351,33 @@ const DashboardPage = () => {
     if (workflowStep === 'done') return 'Complete';
     return status;
   })();
-  const canRunSegmentation = Boolean(stackPreviewUrl);
+  const canRunSegmentation = Boolean(stackPreviewUrl || stackPreviewVolumes.length);
   const isSingleStacked = files.length === 1;
   const canStack = files.length === 1 || files.length === 4;
-  const hasStackedPreview = Boolean(stackPreviewUrl);
+  const hasStackedPreview = Boolean(stackPreviewUrl || stackPreviewVolumes.length);
   const showUploadPanel = !hasStackedPreview;
   const showViewerPanel = hasStackedPreview;
+  const showIndividualUploadsInMainViewer = showUploadPanel && individualUploads.length > 0;
+  const modalityLabelByValue = useMemo(
+    () => MODALITIES.reduce((acc, item) => ({ ...acc, [item.value]: item.label.trim() }), {}),
+    []
+  );
+  const selectedIndividualUploads = useMemo(
+    () => individualUploads
+      .filter((upload) => uploadVisibility[upload.modality] !== false)
+      .map((upload) => ({
+        ...upload,
+        display_name: modalityLabelByValue[upload.modality] || upload.modality.toUpperCase(),
+      })),
+    [individualUploads, uploadVisibility, modalityLabelByValue]
+  );
   const hasModelResult = isDone && Boolean(result?.overlays);
-  const viewerVolume = stackedUrl || result?.model_input_url || stackPreviewUrl || null;
-  const isImagePreview = Boolean(viewerVolume && viewerVolume.startsWith('data:image/'));
+  const viewerVolumes = stackPreviewVolumes.length > 0
+    ? stackPreviewVolumes
+    : stackedUrl || result?.model_input_url || stackPreviewUrl
+      ? [{ url: stackedUrl || result?.model_input_url || stackPreviewUrl }]
+      : [];
+  const isImagePreview = Boolean(stackPreviewUrl && stackPreviewUrl.startsWith('data:image/'));
   const selectedOverlayVolumes = useMemo(() => {
     if (!hasModelResult || !viewerState.showOverlay) {
       return [];
@@ -313,14 +400,16 @@ const DashboardPage = () => {
   const stackButtonHint = files.length === 2 || files.length === 3
     ? `Missing: ${getMissingModalities(files.map((file) => file.modality)).map((modality) => modality.toUpperCase()).join(', ')}. Use Duplicate on a file or upload the missing modality.`
     : stackPreviewUrl
-      ? 'Images are stacked and ready for segmentation.'
-      : 'Stack the uploaded inputs without running the model.';
+      ? 'Stack preview is ready for segmentation.'
+      : stackPreviewVolumes.length
+        ? 'Stack preview is ready for segmentation.'
+      : 'Auto mode: backend live stacking is used when available, with local preview fallback.';
   const showStackButton = !hasStackedPreview && !isProcessing && !isDone;
   const showRunButton = hasStackedPreview && !isProcessing && !isDone;
 
   const baseVolume = useMemo(() => (
-    viewerVolume && !isImagePreview ? [{ url: viewerVolume }] : []
-  ), [viewerVolume, isImagePreview]);
+    viewerVolumes.length > 0 && !isImagePreview ? viewerVolumes : []
+  ), [viewerVolumes, isImagePreview]);
   const viewerBusyLabel = isStacking
     ? 'Stacking input files...'
     : isProcessing
@@ -330,7 +419,7 @@ const DashboardPage = () => {
     () => selectedOverlayVolumes.map((overlay) => overlay.url).join('|'),
     [selectedOverlayVolumes]
   );
-  const viewerInstanceKey = `${viewerResetVersion}:${viewerVolume || 'empty'}:${overlayUrlKey}`;
+  const viewerInstanceKey = `${viewerResetVersion}:${viewerVolumes.map((volume) => volume.url).join('|') || 'empty'}:${overlayUrlKey}`;
 
   useEffect(() => {
     if (!isDone) return;
@@ -387,6 +476,8 @@ const DashboardPage = () => {
                       onFileRemove={handleFileRemove}
                       onFileDuplicate={handleFileDuplicate}
                       onModalityChange={handleModalityChange}
+                      uploadVisibility={uploadVisibility}
+                      onFileVisibilityToggle={handleToggleUploadVisibility}
                       isSingleStacked={isSingleStacked}
                     />
                   </div>
@@ -434,6 +525,9 @@ const DashboardPage = () => {
                   overlayMasks={maskControls}
                   allMasksSelected={allMasksSelected}
                   isUpdating={isViewerUpdating}
+                  individualUploads={[]}
+                  uploadVisibility={{}}
+                  onUploadVisibilityChange={undefined}
                   onSliceChange={(axis, value) =>
                     setViewerState((prev) => {
                       markViewerUpdating();
@@ -589,10 +683,50 @@ const DashboardPage = () => {
                   {isDone && <Badge color="green">Complete</Badge>}
                 </div>
                 <div className="h-[500px] lg:h-[600px]">
-                  {isImagePreview ? (
+                  {showIndividualUploadsInMainViewer ? (
+                    <div className="w-full h-full rounded-xl border border-white/10 bg-[#07142A] p-4 overflow-y-auto">
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-xs text-white/70">Uploaded file previews (before stacking)</p>
+                        <span className="text-[11px] text-white/50">
+                          Showing {selectedIndividualUploads.length} of {individualUploads.length}
+                        </span>
+                      </div>
+
+                      {selectedIndividualUploads.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {selectedIndividualUploads.map((upload) => (
+                            <div
+                              key={upload.modality}
+                              className="rounded-xl border p-3 border-teal/40 bg-teal/5"
+                            >
+                              <p className="text-xs font-semibold text-white/90 mb-2 truncate" title={upload.display_name}>
+                                {upload.display_name}
+                              </p>
+
+                              {upload.preview_url ? (
+                                <img
+                                  src={upload.preview_url}
+                                  alt={`${upload.display_name} preview`}
+                                  className="w-full h-44 object-cover rounded-lg border border-white/10"
+                                />
+                              ) : (
+                                <div className="w-full h-44 rounded-lg border border-dashed border-white/20 flex items-center justify-center text-xs text-white/60">
+                                  Preview unavailable
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="w-full h-full min-h-[240px] rounded-xl border border-dashed border-white/20 flex items-center justify-center text-sm text-white/60">
+                          No files selected. Use View checkboxes in Uploaded Files card.
+                        </div>
+                      )}
+                    </div>
+                  ) : isImagePreview ? (
                     <div className="w-full h-full flex items-center justify-center bg-[#07142A] rounded-xl border border-white/10 p-3">
                       <img
-                        src={viewerVolume}
+                        src={stackPreviewUrl}
                         alt="Stack preview"
                         className="max-w-full max-h-full object-contain rounded-lg"
                       />

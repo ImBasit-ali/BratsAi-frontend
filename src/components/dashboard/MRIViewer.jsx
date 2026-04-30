@@ -22,6 +22,7 @@ const registerMaskColormaps = (nv) => {
 };
 
 const resolveOverlayColormap = (colormap) => MASK_COLORMAP_KEYS[colormap] || MASK_COLORMAP_KEYS.red;
+const clampOpacity = (value) => Math.min(Math.max(value, 0), 1);
 
 const MRIViewer = ({
   volumes = [],
@@ -106,7 +107,7 @@ const MRIViewer = ({
             volumeList.push({
               url: overlay.url,
               colormap: resolveOverlayColormap(overlay.colormap),
-              opacity: Math.min(Math.max(overlayOpacity, 0), 0.65),
+              opacity: clampOpacity(overlayOpacity),
               cal_min: 1,
               cal_max: 1,
               isTransparentBelowCalMin: true,
@@ -177,21 +178,39 @@ const MRIViewer = ({
     const nv = nvRef.current;
     if (!nv || !Array.isArray(nv.volumes) || nv.volumes.length === 0) return;
 
+    const normalizedOpacity = clampOpacity(overlayOpacity);
+    const overlayCount = overlayVolumes.filter((overlay) => Boolean(overlay?.url)).length;
+    const overlayStartIndex = Math.max(1, nv.volumes.length - overlayCount);
+
     nv.volumes.forEach((vol, index) => {
-      vol.opacity = index === 0 ? 1 : Math.min(Math.max(overlayOpacity, 0), 0.65);
+      vol.opacity = index === 0 ? 1 : normalizedOpacity;
       if (index > 0) {
         vol.cal_min = 1;
         vol.cal_max = 1;
       }
     });
 
+    // Use explicit API update when available for smoother per-frame opacity changes.
+    if (typeof nv.setOpacity === 'function') {
+      for (let index = overlayStartIndex; index < nv.volumes.length; index += 1) {
+        try {
+          nv.setOpacity(index, normalizedOpacity);
+        } catch {
+          // Fallback to direct volume mutation above.
+        }
+      }
+    }
+
     if (typeof nv.updateGLVolume === 'function') {
       nv.updateGLVolume();
+    }
+    if (typeof nv.refreshDrawing === 'function') {
+      nv.refreshDrawing(true);
     }
     if (typeof nv.drawScene === 'function') {
       nv.drawScene();
     }
-  }, [overlayOpacity]);
+  }, [overlayOpacity, overlayVolumes]);
 
   const viewModes = [
     { key: 'multi', label: 'Multi' },

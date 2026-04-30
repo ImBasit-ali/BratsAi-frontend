@@ -1,5 +1,12 @@
 import { useState, useCallback, useRef } from 'react';
-import { startSegmentation, getSegmentationStatus, getSegmentationResult } from '../services/api';
+import {
+  startSegmentation,
+  getSegmentationStatus,
+  getSegmentationResult,
+  getWorkerHealth,
+} from '../services/api';
+
+const PENDING_STUCK_POLLS = 20;
 
 const useSegmentation = () => {
   const [jobId, setJobId] = useState(null);
@@ -10,12 +17,14 @@ const useSegmentation = () => {
   const [stackedUrl, setStackedUrl] = useState(null);
   const [maskUrl, setMaskUrl] = useState(null);
   const pollingRef = useRef(null);
+  const pendingPollsRef = useRef(0);
 
   const clearPolling = useCallback(() => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;
     }
+    pendingPollsRef.current = 0;
   }, []);
 
   const pollStatus = useCallback((id) => {
@@ -41,16 +50,35 @@ const useSegmentation = () => {
           // Result may have more accurate URLs
           if (resultData.stacked_url) setStackedUrl(resultData.stacked_url);
           if (resultData.mask_url) setMaskUrl(resultData.mask_url);
+          return;
         } else if (statusData.status === 'error' || statusData.status === 'failed') {
           clearPolling();
           setError(statusData.error || 'Segmentation failed');
+          return;
+        }
+
+        if (statusData.status === 'pending') {
+          pendingPollsRef.current += 1;
+
+          if (pendingPollsRef.current >= PENDING_STUCK_POLLS) {
+            const health = await getWorkerHealth();
+            const workerLikelyDown = health?.pending_jobs > 0 && health?.processing_jobs === 0;
+
+            if (workerLikelyDown) {
+              clearPolling();
+              setStatus('error');
+              setError('Job is stuck in pending. Start backend worker with: python worker.py');
+            }
+          }
+        } else {
+          pendingPollsRef.current = 0;
         }
       } catch (err) {
         clearPolling();
         setStatus('error');
         setError('Lost connection to server');
       }
-    }, 2500);
+    }, 1500);
   }, [clearPolling]);
 
   const runSegmentation = useCallback(async (files, settings) => {
@@ -64,8 +92,20 @@ const useSegmentation = () => {
 
       const data = await startSegmentation(files, settings);
       setJobId(data.id);
-      setStatus('pending');
-      pollStatus(data.id);
+
+      if (data.status === 'done') {
+        setStatus('done');
+        const resultData = await getSegmentationResult(data.id);
+        setResult(resultData);
+        if (resultData.stacked_url) setStackedUrl(resultData.stacked_url);
+        if (resultData.mask_url) setMaskUrl(resultData.mask_url);
+      } else if (data.status === 'failed' || data.status === 'error') {
+        setStatus('error');
+        setError(data.error || 'Segmentation failed');
+      } else {
+        setStatus('pending');
+        pollStatus(data.id);
+      }
 
       return data;
     } catch (err) {

@@ -5,6 +5,8 @@ const FileList = ({
   files,
   onFileRemove,
   onFileDuplicate,
+  uploadVisibility = {},
+  onFileVisibilityToggle,
   isSingleStacked = false,
 }) => {
   if (files.length === 0) return null;
@@ -51,9 +53,22 @@ const FileList = ({
             </div>
 
             {/* Modality label */}
-            <span className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/10 text-primary min-w-[140px] text-center">
-              {isSingleStacked ? 'Stacked Input' : getModalityLabel(fileObj.modality)}
-            </span>
+            <div className="flex items-center gap-2">
+              {!isSingleStacked && (
+                <label className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg border border-primary/15 bg-white text-xs text-primary/80 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={uploadVisibility[fileObj.modality] !== false}
+                    onChange={() => onFileVisibilityToggle?.(fileObj.modality)}
+                    className="w-3.5 h-3.5 rounded border-primary/30 text-teal focus:ring-teal/30"
+                  />
+                  View
+                </label>
+              )}
+              <span className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-primary/10 text-primary min-w-[140px] text-center">
+                {isSingleStacked ? 'Stacked Input' : getModalityLabel(fileObj.modality)}
+              </span>
+            </div>
 
             {/* Remove button */}
             <div className="flex items-center gap-1">
