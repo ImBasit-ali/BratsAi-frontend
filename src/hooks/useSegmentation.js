@@ -81,16 +81,16 @@ const useSegmentation = () => {
     }, 1500);
   }, [clearPolling]);
 
-  const runSegmentation = useCallback(async (files, settings) => {
+  const runSegmentation = useCallback(async (jobIdToRun, settings) => {
     try {
-      setStatus('uploading');
+      setStatus('pending');
       setError(null);
       setResult(null);
       setProgress(null);
       setStackedUrl(null);
       setMaskUrl(null);
 
-      const data = await startSegmentation(files, settings);
+      const data = await startSegmentation(jobIdToRun, settings);
       setJobId(data.id);
 
       if (data.status === 'done') {

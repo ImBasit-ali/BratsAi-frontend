@@ -97,10 +97,9 @@ const createLocalPreviewVolumes = (files) => {
 // ── Public API functions ──────────────────────────────────────────────────────
 
 /**
- * Upload NIfTI files and start a segmentation job.
- * Returns job_id immediately — processing runs in a background thread.
+ * Upload NIfTI files ONCE. Returns a job_id for draft job.
  */
-export const startSegmentation = async (files, settings) => {
+export const uploadDraftFiles = async (files) => {
   const formData = new FormData();
 
   files.forEach((fileObj) => {
@@ -108,16 +107,26 @@ export const startSegmentation = async (files, settings) => {
     formData.append('modalities', fileObj.modality);
   });
 
-  formData.append('regions', JSON.stringify(settings.regions));
+  const response = await api.post(buildApiUrl('/segment/upload/'), formData, {
+    timeout: STACK_PREVIEW_TIMEOUT_MS, // 5 min timeout for large uploads
+  });
 
-  // Sync mode forces the response to wait until inference completes.
-  // Useful when the Railway worker thread isn't available or for testing.
+  return response.data;
+};
+
+/**
+ * Start a segmentation job using a previously uploaded job_id.
+ * Returns job_id immediately — processing runs in a background thread.
+ */
+export const startSegmentation = async (jobId, settings) => {
   const syncMode = import.meta.env.VITE_SYNC_SEGMENTATION === 'true';
-  if (syncMode) {
-    formData.append('sync', 'true');
-  }
+  const payload = {
+    job_id: jobId,
+    regions: JSON.stringify(settings.regions),
+    sync: syncMode ? 'true' : 'false',
+  };
 
-  const response = await api.post(buildApiUrl('/segment/'), formData, {
+  const response = await api.post(buildApiUrl('/segment/'), payload, {
     timeout: syncMode ? 600000 : 30000, // 10 min sync | 30 s async
   });
 
@@ -132,17 +141,10 @@ export const getWorkerHealth = async () => {
 
 /**
  * View individual uploaded NIfTI files WITHOUT stacking (preview only).
- * Sends files to the backend which returns base64 PNG previews.
+ * Uses job_id to process already-uploaded files on backend.
  */
-export const viewIndividualUploads = async (files) => {
-  const formData = new FormData();
-
-  files.forEach((fileObj) => {
-    formData.append('files', fileObj.file);
-    formData.append('modalities', fileObj.modality);
-  });
-
-  const response = await api.post(buildApiUrl('/segment/view-uploads/'), formData, {
+export const viewIndividualUploads = async (jobId) => {
+  const response = await api.post(buildApiUrl('/segment/view-uploads/'), { job_id: jobId }, {
     timeout: STACK_PREVIEW_TIMEOUT_MS,
   });
 
@@ -172,18 +174,11 @@ export const stackInputsLocal = async (files) => {
 };
 
 /**
- * Live stacking preview — sends all files to the backend for a full NIfTI stack.
+ * Live stacking preview — uses already-uploaded files via job_id.
  * Returns a base64 PNG preview of the middle axial slice.
  */
-export const stackInputsLive = async (files) => {
-  const formData = new FormData();
-
-  files.forEach((fileObj) => {
-    formData.append('files', fileObj.file);
-    formData.append('modalities', fileObj.modality);
-  });
-
-  const response = await api.post(buildApiUrl('/segment/stack/'), formData, {
+export const stackInputsLive = async (jobId, files) => {
+  const response = await api.post(buildApiUrl('/segment/stack/'), { job_id: jobId }, {
     timeout: STACK_PREVIEW_TIMEOUT_MS,
   });
 
@@ -225,7 +220,7 @@ const shouldFallbackToLocal = (error) => {
  * - 'local': always local
  * - 'live': always backend (throws on failure)
  */
-export const stackInputs = async (files, options = {}) => {
+export const stackInputs = async (jobId, files, options = {}) => {
   const { runMode = 'auto' } = options;
 
   if (runMode === 'local') {
@@ -233,11 +228,11 @@ export const stackInputs = async (files, options = {}) => {
   }
 
   if (runMode === 'live') {
-    return stackInputsLive(files);
+    return stackInputsLive(jobId, files);
   }
 
   try {
-    return await stackInputsLive(files);
+    return await stackInputsLive(jobId, files);
   } catch (error) {
     if (shouldFallbackToLocal(error)) {
       const localResult = await stackInputsLocal(files);

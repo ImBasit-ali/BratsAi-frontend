@@ -11,7 +11,7 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import useSegmentation from '../hooks/useSegmentation';
-import { stackInputs, viewIndividualUploads } from '../services/api';
+import { stackInputs, viewIndividualUploads, uploadDraftFiles } from '../services/api';
 import { getMissingModalities, MODALITIES } from '../utils/constants';
 
 const OVERLAY_MASKS = [
@@ -32,6 +32,8 @@ const DashboardPage = () => {
   const viewerUpdateTimerRef = useRef(null);
   
   // Individual uploads preview (before stacking)
+  const [uploadJobId, setUploadJobId] = useState(null);
+  const [isUploadingDraft, setIsUploadingDraft] = useState(false);
   const [individualUploads, setIndividualUploads] = useState([]);
   const [uploadVisibility, setUploadVisibility] = useState({
     // e.g., { t1: true, t1ce: true, t2: true, flair: true }
@@ -97,6 +99,7 @@ const DashboardPage = () => {
   // File handlers
   const handleFilesAdded = useCallback((newFiles) => {
     setUploadError(null);
+    setUploadJobId(null);
     revokeStackPreviewUrl(stackPreviewUrl);
     revokeStackPreviewVolumes(stackPreviewVolumes);
     setStackPreviewUrl(null);
@@ -120,23 +123,7 @@ const DashboardPage = () => {
         return prev;
       }
 
-      // Asynchronously load individual uploads for preview
-      (async () => {
-        try {
-          const response = await viewIndividualUploads(merged);
-          if (response?.volumes) {
-            setIndividualUploads(response.volumes);
-            // Initialize all uploads as visible by default
-            const visibilityMap = {};
-            response.volumes.forEach((vol) => {
-              visibilityMap[vol.modality] = true;
-            });
-            setUploadVisibility(visibilityMap);
-          }
-        } catch (error) {
-          console.warn('Failed to load individual uploads for preview:', error);
-        }
-      })();
+      
 
       return merged;
     });
@@ -147,6 +134,7 @@ const DashboardPage = () => {
     revokeStackPreviewVolumes(stackPreviewVolumes);
     setFiles((prev) => prev.filter((f) => f.id !== fileId));
     setUploadError(null);
+    setUploadJobId(null);
     setStackPreviewUrl(null);
     setStackPreviewVolumes([]);
     setIndividualUploads([]);
@@ -156,6 +144,7 @@ const DashboardPage = () => {
 
   const handleModalityChange = useCallback((fileId, modality) => {
     setUploadError(null);
+    setUploadJobId(null);
     revokeStackPreviewUrl(stackPreviewUrl);
     revokeStackPreviewVolumes(stackPreviewVolumes);
     setStackPreviewUrl(null);
@@ -176,6 +165,7 @@ const DashboardPage = () => {
 
   const handleFileDuplicate = useCallback((fileId) => {
     setUploadError(null);
+    setUploadJobId(null);
     revokeStackPreviewUrl(stackPreviewUrl);
     revokeStackPreviewVolumes(stackPreviewVolumes);
     setStackPreviewUrl(null);
@@ -216,7 +206,34 @@ const DashboardPage = () => {
     }));
   }, []);
 
+
+  const handleUploadToServer = async () => {
+    if (files.length === 0) return;
+    try {
+      setIsUploadingDraft(true);
+      setUploadError(null);
+      const data = await uploadDraftFiles(files);
+      setUploadJobId(data.job_id);
+
+      // Once uploaded, fetch previews
+      const response = await viewIndividualUploads(data.job_id);
+      if (response?.volumes) {
+        setIndividualUploads(response.volumes);
+        const visibilityMap = {};
+        response.volumes.forEach((vol) => {
+          visibilityMap[vol.modality] = true;
+        });
+        setUploadVisibility(visibilityMap);
+      }
+    } catch (error) {
+      setUploadError(error.response?.data?.error || error.message || 'Failed to upload files.');
+    } finally {
+      setIsUploadingDraft(false);
+    }
+  };
+
   const handleStackFiles = async () => {
+
     if (files.length === 0) return;
 
     const currentModalities = files.map((file) => file.modality);
@@ -236,7 +253,7 @@ const DashboardPage = () => {
 
     try {
       setIsStacking(true);
-      const response = await stackInputs(files);
+      const response = await stackInputs(uploadJobId, files);
       
       if (response?.stacked_url) {
         revokeStackPreviewVolumes(stackPreviewVolumes);
@@ -254,6 +271,7 @@ const DashboardPage = () => {
         setStackPreviewVolumes(response.preview_volumes);
       }
       setUploadError(null);
+    setUploadJobId(null);
     } catch (error) {
       setUploadError(error.response?.data?.error || error.message || 'Failed to stack inputs.');
     } finally {
@@ -302,10 +320,11 @@ const DashboardPage = () => {
       : files;
 
     try {
-      await runSegmentation(uploadFiles, {
+      await runSegmentation(uploadJobId, {
         regions: { ET: true, NETC: true, SNFH: true, RC: true },
       });
       setUploadError(null);
+    setUploadJobId(null);
     } catch {
       // Error handled in hook
     }
@@ -318,6 +337,7 @@ const DashboardPage = () => {
     reset();
     setFiles([]);
     setUploadError(null);
+    setUploadJobId(null);
     setStackPreviewUrl(null);
     setStackPreviewVolumes([]);
     setViewerResetVersion((prev) => prev + 1);
@@ -487,7 +507,26 @@ const DashboardPage = () => {
                   )}
 
                   <div className="mt-4 space-y-3">
-                    {showStackButton && (
+                    
+                    {!uploadJobId && files.length > 0 && (
+                      <>
+                        <Button
+                          variant="primary"
+                          size="md"
+                          className="w-full"
+                          loading={isUploadingDraft}
+                          onClick={handleUploadToServer}
+                        >
+                          {isUploadingDraft ? 'Uploading...' : 'Upload to Server'}
+                        </Button>
+                        <p className="text-xs text-textColor/60 mt-2">
+                          Upload files first to enable stacking and segmentation.
+                        </p>
+                      </>
+                    )}
+
+                    {showStackButton && uploadJobId && (
+
                       <>
                         <Button
                           variant="secondary"
