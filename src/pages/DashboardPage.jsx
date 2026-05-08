@@ -207,12 +207,12 @@ const DashboardPage = () => {
   }, []);
 
 
-  const handleUploadToServer = async () => {
-    if (files.length === 0) return;
+  const handleUploadToServer = useCallback(async (filesToUpload) => {
+    if (!filesToUpload || filesToUpload.length === 0) return;
     try {
       setIsUploadingDraft(true);
       setUploadError(null);
-      const data = await uploadDraftFiles(files);
+      const data = await uploadDraftFiles(filesToUpload);
       setUploadJobId(data.job_id);
 
       // Once uploaded, fetch previews
@@ -230,7 +230,25 @@ const DashboardPage = () => {
     } finally {
       setIsUploadingDraft(false);
     }
-  };
+  }, []);
+
+  const prevFilesRef = useRef([]);
+
+  useEffect(() => {
+    if (files.length === 0) {
+      prevFilesRef.current = [];
+      return;
+    }
+    
+    // Check if files changed in a meaningful way
+    const isDifferent = files.length !== prevFilesRef.current.length || 
+      files.some((f, i) => f.id !== prevFilesRef.current[i]?.id || f.modality !== prevFilesRef.current[i]?.modality);
+      
+    if (isDifferent) {
+      prevFilesRef.current = files;
+      handleUploadToServer(files);
+    }
+  }, [files, handleUploadToServer]);
 
   const handleStackFiles = async () => {
 
@@ -508,38 +526,34 @@ const DashboardPage = () => {
 
                   <div className="mt-4 space-y-3">
                     
-                    {!uploadJobId && files.length > 0 && (
+                    {!uploadJobId && files.length > 0 && uploadError && (
                       <>
                         <Button
                           variant="primary"
                           size="md"
                           className="w-full"
                           loading={isUploadingDraft}
-                          onClick={handleUploadToServer}
+                          onClick={() => handleUploadToServer(files)}
                         >
-                          {isUploadingDraft ? 'Uploading...' : 'Upload to Server'}
+                          Retry Upload
                         </Button>
-                        <p className="text-xs text-textColor/60 mt-2">
-                          Upload files first to enable stacking and segmentation.
-                        </p>
                       </>
                     )}
 
-                    {showStackButton && uploadJobId && (
-
+                    {showStackButton && files.length > 0 && (
                       <>
                         <Button
                           variant="secondary"
                           size="md"
                           className="w-full"
-                          disabled={!canStack || isStacking}
-                          loading={isStacking}
+                          disabled={!canStack || isStacking || isUploadingDraft || !uploadJobId}
+                          loading={isStacking || isUploadingDraft}
                           onClick={handleStackFiles}
                         >
-                          {isStacking ? 'Stacking Images...' : stackButtonLabel}
+                          {isUploadingDraft ? 'Uploading...' : isStacking ? 'Stacking Images...' : stackButtonLabel}
                         </Button>
                         <p className="text-xs text-textColor/60">
-                          {isStacking ? 'Please wait while inputs are being stacked.' : stackButtonHint}
+                          {isUploadingDraft ? 'Uploading files automatically...' : isStacking ? 'Please wait while inputs are being stacked.' : stackButtonHint}
                         </p>
                       </>
                     )}
