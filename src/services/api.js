@@ -100,18 +100,53 @@ const createLocalPreviewVolumes = (files) => {
  * Upload NIfTI files ONCE. Returns a job_id for draft job.
  */
 export const uploadDraftFiles = async (files) => {
-  const formData = new FormData();
+  const filesInfo = files.map(f => ({
+    filename: f.file.name,
+    modality: f.modality
+  }));
 
-  files.forEach((fileObj) => {
-    formData.append('files', fileObj.file);
-    formData.append('modalities', fileObj.modality);
-  });
+  try {
+    const presignedRes = await api.post(buildApiUrl('/segment/presigned-upload/'), { files: filesInfo });
+    const { job_id, uploads } = presignedRes.data;
 
-  const response = await api.post(buildApiUrl('/segment/upload/'), formData, {
-    timeout: STACK_PREVIEW_TIMEOUT_MS, // 5 min timeout for large uploads
-  });
+    const uploadPromises = files.map(async (f) => {
+      const uploadInfo = uploads.find(u => u.modality === f.modality && u.filename === f.file.name);
+      if (!uploadInfo) throw new Error('Missing presigned URL for ' + f.file.name);
 
-  return response.data;
+      const headers = {};
+      if (uploadInfo.token) {
+        headers['Authorization'] = `Bearer ${uploadInfo.token}`;
+      }
+
+      const response = await fetch(uploadInfo.upload_url, {
+        method: 'PUT',
+        headers,
+        body: f.file
+      });
+
+      if (!response.ok) {
+        throw new Error(`Direct upload failed for ${f.file.name}: ${response.statusText}`);
+      }
+    });
+
+    await Promise.all(uploadPromises);
+    return { job_id, success: true };
+
+  } catch (err) {
+    console.warn('Presigned upload failed or not supported, falling back to FormData:', err);
+
+    const formData = new FormData();
+    files.forEach((fileObj) => {
+      formData.append('files', fileObj.file);
+      formData.append('modalities', fileObj.modality);
+    });
+
+    const response = await api.post(buildApiUrl('/segment/upload/'), formData, {
+      timeout: STACK_PREVIEW_TIMEOUT_MS,
+    });
+
+    return response.data;
+  }
 };
 
 /**
