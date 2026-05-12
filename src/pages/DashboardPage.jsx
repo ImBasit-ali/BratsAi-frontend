@@ -526,7 +526,7 @@ const DashboardPage = () => {
 
                   <div className="mt-4 space-y-3">
                     
-                    {!uploadJobId && files.length > 0 && uploadError && (
+                    {!uploadJobId && files.length > 0 && uploadError && !isUploadingDraft && (
                       <>
                         <Button
                           variant="primary"
