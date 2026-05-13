@@ -11,8 +11,10 @@ import Button from '../components/ui/Button';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import useSegmentation from '../hooks/useSegmentation';
-import { stackInputs, viewIndividualUploads, uploadDraftFiles } from '../services/api';
+import { stackInputs, uploadDraftFiles, isLocalDraftJobId } from '../services/api';
 import { getMissingModalities, MODALITIES } from '../utils/constants';
+import { buildIndividualUploadPreviewsFromFiles } from '../utils/niftiPreview';
+import { persistLocalDraft, clearLocalDraftPersistence } from '../utils/localDraftPersistence';
 
 const OVERLAY_MASKS = [
   { key: 'enhancing_tumor', label: 'Enhancing Tumor', color: '#FACC15', colormap: 'yellow' },
@@ -207,7 +209,7 @@ const DashboardPage = () => {
   }, []);
 
 
-  const handleUploadToServer = useCallback(async (filesToUpload) => {
+  const prepareLocalDraft = useCallback(async (filesToUpload) => {
     if (!filesToUpload || filesToUpload.length === 0) return;
     try {
       setIsUploadingDraft(true);
@@ -215,18 +217,18 @@ const DashboardPage = () => {
       const data = await uploadDraftFiles(filesToUpload);
       setUploadJobId(data.job_id);
 
-      // Once uploaded, fetch previews
-      const response = await viewIndividualUploads(data.job_id);
-      if (response?.volumes) {
-        setIndividualUploads(response.volumes);
-        const visibilityMap = {};
-        response.volumes.forEach((vol) => {
-          visibilityMap[vol.modality] = true;
-        });
-        setUploadVisibility(visibilityMap);
-      }
+      const volumes = await buildIndividualUploadPreviewsFromFiles(filesToUpload);
+      setIndividualUploads(volumes);
+      const visibilityMap = {};
+      volumes.forEach((vol) => {
+        visibilityMap[vol.modality] = true;
+      });
+      setUploadVisibility(visibilityMap);
+
+      await persistLocalDraft(data.job_id, filesToUpload);
     } catch (error) {
-      setUploadError(error.response?.data?.error || error.message || 'Failed to upload files.');
+      setUploadError(error.response?.data?.error || error.message || 'Failed to prepare local previews.');
+      setUploadJobId(null);
     } finally {
       setIsUploadingDraft(false);
     }
@@ -246,9 +248,9 @@ const DashboardPage = () => {
       
     if (isDifferent) {
       prevFilesRef.current = files;
-      handleUploadToServer(files);
+      prepareLocalDraft(files);
     }
-  }, [files, handleUploadToServer]);
+  }, [files, prepareLocalDraft]);
 
   const handleStackFiles = async () => {
 
@@ -289,7 +291,6 @@ const DashboardPage = () => {
         setStackPreviewVolumes(response.preview_volumes);
       }
       setUploadError(null);
-    setUploadJobId(null);
     } catch (error) {
       setUploadError(error.response?.data?.error || error.message || 'Failed to stack inputs.');
     } finally {
@@ -312,6 +313,13 @@ const DashboardPage = () => {
   // Run segmentation
   const handleRunSegmentation = async () => {
     if (files.length === 0) return;
+
+    if (isLocalDraftJobId(uploadJobId)) {
+      setUploadError(
+        'Scans stay on this device only. Cloud segmentation needs a server upload; use a backend-enabled build to run the model.',
+      );
+      return;
+    }
 
     if (!stackPreviewUrl && stackPreviewVolumes.length === 0) {
       setUploadError('Stack images first, then run segmentation.');
@@ -342,7 +350,6 @@ const DashboardPage = () => {
         regions: { ET: true, NETC: true, SNFH: true, RC: true },
       });
       setUploadError(null);
-    setUploadJobId(null);
     } catch {
       // Error handled in hook
     }
@@ -350,6 +357,7 @@ const DashboardPage = () => {
 
   // Reset
   const handleReset = () => {
+    clearLocalDraftPersistence();
     revokeStackPreviewUrl(stackPreviewUrl);
     revokeStackPreviewVolumes(stackPreviewVolumes);
     reset();
@@ -358,6 +366,8 @@ const DashboardPage = () => {
     setUploadJobId(null);
     setStackPreviewUrl(null);
     setStackPreviewVolumes([]);
+    setIndividualUploads([]);
+    setUploadVisibility({});
     setViewerResetVersion((prev) => prev + 1);
   };
 
@@ -389,7 +399,9 @@ const DashboardPage = () => {
     if (workflowStep === 'done') return 'Complete';
     return status;
   })();
-  const canRunSegmentation = Boolean(stackPreviewUrl || stackPreviewVolumes.length);
+  const isLocalOnlyDraft = isLocalDraftJobId(uploadJobId);
+  const canRunSegmentation =
+    Boolean(stackPreviewUrl || stackPreviewVolumes.length) && !isLocalOnlyDraft;
   const isSingleStacked = files.length === 1;
   const canStack = files.length === 1 || files.length === 4;
   const hasStackedPreview = Boolean(stackPreviewUrl || stackPreviewVolumes.length);
@@ -441,7 +453,7 @@ const DashboardPage = () => {
       ? 'Stack preview is ready for segmentation.'
       : stackPreviewVolumes.length
         ? 'Stack preview is ready for segmentation.'
-      : 'Auto mode: backend live stacking is used when available, with local preview fallback.';
+        : 'Stacking uses your browser only (no server upload).';
   const showStackButton = !hasStackedPreview && !isProcessing && !isDone;
   const showRunButton = hasStackedPreview && !isProcessing && !isDone;
 
@@ -527,17 +539,14 @@ const DashboardPage = () => {
                   <div className="mt-4 space-y-3">
                     
                     {!uploadJobId && files.length > 0 && uploadError && !isUploadingDraft && (
-                      <>
-                        <Button
-                          variant="primary"
-                          size="md"
-                          className="w-full"
-                          loading={isUploadingDraft}
-                          onClick={() => handleUploadToServer(files)}
-                        >
-                          Retry Upload
-                        </Button>
-                      </>
+                      <Button
+                        variant="primary"
+                        size="md"
+                        className="w-full"
+                        onClick={() => prepareLocalDraft(files)}
+                      >
+                        Retry local preview
+                      </Button>
                     )}
 
                     {showStackButton && files.length > 0 && (
@@ -550,10 +559,14 @@ const DashboardPage = () => {
                           loading={isStacking || isUploadingDraft}
                           onClick={handleStackFiles}
                         >
-                          {isUploadingDraft ? 'Uploading...' : isStacking ? 'Stacking Images...' : stackButtonLabel}
+                          {isUploadingDraft ? 'Preparing previews...' : isStacking ? 'Stacking Images...' : stackButtonLabel}
                         </Button>
                         <p className="text-xs text-textColor/60">
-                          {isUploadingDraft ? 'Uploading files automatically...' : isStacking ? 'Please wait while inputs are being stacked.' : stackButtonHint}
+                          {isUploadingDraft
+                            ? 'Building on-device previews (nothing is sent to a server).'
+                            : isStacking
+                              ? 'Please wait while inputs are being stacked.'
+                              : stackButtonHint}
                         </p>
                       </>
                     )}
@@ -645,16 +658,23 @@ const DashboardPage = () => {
 
               <div className="space-y-3">
                 {showRunButton && (
-                  <Button
-                    variant="teal"
-                    size="lg"
-                    className="w-full"
-                    disabled={!canRunSegmentation}
-                    onClick={handleRunSegmentation}
-                    icon="🧠"
-                  >
-                    Run Segmentation
-                  </Button>
+                  <>
+                    <Button
+                      variant="teal"
+                      size="lg"
+                      className="w-full"
+                      disabled={!canRunSegmentation}
+                      onClick={handleRunSegmentation}
+                      icon="🧠"
+                    >
+                      Run Segmentation
+                    </Button>
+                    {isLocalOnlyDraft && (
+                      <p className="text-xs text-textColor/60">
+                        Files stay on this device (localStorage manifest + IndexedDB). Run Segmentation is off until you use a flow that uploads to your backend.
+                      </p>
+                    )}
+                  </>
                 )}
 
                 {isProcessing && (

@@ -13,6 +13,7 @@
     "@niivue/niivue": "^0.44.0",
     "axios": "^1.15.0",
     "framer-motion": "^11.0.0",
+    "nifti-reader-js": "^0.8.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
     "react-dropzone": "^14.2.0",
